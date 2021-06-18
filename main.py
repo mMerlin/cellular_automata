@@ -25,6 +25,16 @@ from automaton import Automaton
 
 # setup functions to add patterns of cell to and automaton universe generation
 
+def report_generation(instance: Automaton):
+    '''show information about an Automaton generation'''
+    # print(amn.generation)
+    # for cell in amn.generation:
+    #     print(cell)
+    print("generation", instance.iteration, "population", instance.population,
+        "extent", instance.generation_extent,
+        "hashes", hash(instance), hash(instance.generation),
+        "contains", list(instance.generation))
+
 def offset_cells(cells: list[tuple[int,int]], offset_x: int = 0, offset_y: int = 0) -> \
         list[tuple[int,int]]:
     '''add x and/or y offsets to cell coordinate tuples in a list'''
@@ -96,6 +106,13 @@ def my_main():
     ))
     amn = Automaton(neighbours, (frozenset((2,3)), frozenset([3]))) # good «2 arguments»
     print("dimensions", amn.dimensions)
+    print("neighbourhood", amn.neighbourhood)
+    # print("extent", amn._get_extent(amn.neighbourhood))
+    c_block = set(amn.neighbourhood)
+    print("neighbourhood block", c_block)
+    print("normalized result", amn._normalize_cells(c_block))
+    print("normalized neighbourhood", c_block)
+
     # amn.iteration = 1
     # _one_cell(amn)
     # _one_cell(amn, 1, 2)
@@ -105,14 +122,13 @@ def my_main():
     _three_cell_row(amn)
     # _three_cell_diagonal(amn)
 
-    print("generation", amn.iteration, "is", list(amn.generation))
-        # print(amn.generation)
-        # for cell in amn.generation:
-        #     print(cell)
-    amn.step()
-    print("generation", amn.iteration, "is", list(amn.generation))
-    amn.step()
-    print("generation", amn.iteration, "is", list(amn.generation))
+    report_generation(amn)
+    # amn.step()
+    # report_generation(amn)
+    # amn.step()
+    # report_generation(amn)
+    # amn.step()
+    # report_generation(amn)
 
 
 # Standalone module execution

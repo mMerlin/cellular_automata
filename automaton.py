@@ -36,6 +36,7 @@ class Automaton:
 
     # aliases for hinttype patterns
     automaton_address_type = tuple[int, ...]
+    automaton_bounding_box_type = tuple[tuple[int, ...], tuple[int, ...]]
     automaton_neighbourhood_type = frozenset[automaton_address_type]
     automaton_cell_group_type = set[automaton_address_type]
     automaton_rules_type = tuple[frozenset[int], frozenset[int]]
@@ -69,6 +70,11 @@ class Automaton:
     def iteration(self) -> int:
         return self._iteration
 
+    @property
+    def population(self) -> int:
+        '''the number of living cells in the current universe generation'''
+        return len(self._generation)
+
     @iteration.setter
     def iteration(self, new_iteration):
         '''set generation sequence number for the current set
@@ -94,7 +100,6 @@ class Automaton:
         :rtype: int
         '''
         return len(self._cell_neighbourhood)
-    # end neighbourhood_size() property getter
 
     @property
     def generation(self) -> automaton_neighbourhood_type:
@@ -104,11 +109,69 @@ class Automaton:
         :rtype: frozenset of cell address tuples
         '''
         return frozenset(self._generation)
-    # end current() property getter
+    # end generation property getter
 
-    # end of property methodsNone
+    @property
+    def generation_extent(self) -> automaton_bounding_box_type:
+        return self._get_extent(self.generation)
+
+    # end of property methods
 
     # general methods
+
+    def __hash__(self):
+        # hash of the configuration and dynamic data of the automaton
+        return hash((self._survive, self._birth, self.neighbourhood,
+            self.iteration, self.generation))
+
+    def _get_extent(self, cells: automaton_cell_group_type) \
+            -> automaton_bounding_box_type:
+        '''determine the n-dimensional bounding box for a set of cells
+
+        :param cells:
+        :type cells: «forzen»set of cell coordinate tuples
+        :returns: minimum and maximum corner coordinates of bounding box
+        :rtype: tuple[tuple[int, ...],tuple[int, ...]]
+        '''
+        box_min = [float('inf')] * self.dimensions
+        box_max = [-box_min[0]] * self.dimensions
+        for coord in cells:
+            box_min = [min(new, cur) for new, cur in zip(coord, box_min)]
+            box_max = [max(new, cur) for new, cur in zip(coord, box_max)]
+        return tuple((tuple(box_min), tuple(box_max)))
+
+    def _offset_cell_block(self, cells: automaton_cell_group_type,
+            offset_vector: automaton_address_type) -> automaton_cell_group_type:
+        '''add offset «vector» to each cell coordinate'''
+        assert len(offset_vector) == self.dimensions
+        # all offset integers
+        return [tuple(base + offset for base, offset in zip(c, offset_vector)) for c in cells]
+
+    def _normalize_cells(self, cells: automaton_cell_group_type) -> automaton_bounding_box_type:
+        # '''shift group of cells to fit against all axis in the first quadrant
+
+        # The lowest coordinate value in every dimension will be zero.
+
+        # The bounding box for the normalized set is the origin (0, 0, …) and the returned
+        # extent address.
+
+        # :param cells: (in|out)
+        # :type cells: set of cell address tuples
+        # :return extent: bounding box of the original block of cells
+        # :rtype: tuple containing minimum and maximum coordinate tuples
+        # NOTE  return_value[0] is the offset vector need to move the normalized
+        #       block back to its original location
+        # '''
+        bounding_box = self._get_extent(cells)
+        offset_vector = [-1 * delta for delta in bounding_box[0]]
+        normalized = self._offset_cell_block(cells, offset_vector)
+        n_max = self._offset_cell_block(bounding_box, offset_vector)
+        print("bb", bounding_box, "offset bb", n_max)
+        cells.clear()
+        cells.update(normalized)
+        # return (tuple(offset_vector), n_max[1])
+        return bounding_box
+    # end def _normalize_cells()
 
     def merge_cells(self, cells: automaton_cells_type):
         '''add living cells to the current generation
@@ -142,56 +205,35 @@ class Automaton:
         # :type cells: single cell address tuple or iterable of cell address tuples
         # '''
     # def _get_expanded_neighborhood(self) -> automaton_neighbourhood_type:
-    #     '''neighbourhood that covers as far as it is possible of a cell to interact
+        # '''neighbourhood that covers as far as it is possible of a cell to interact
 
-    #     Is the union of the standard neighbourhood of every neighbourhood address an accurate
-    #     representation of the extended neighbourhood? It should be for a `normal` cellular
-    #     automata neighbourhood. Will it be for all possible special cases? With the
-    #     neighbour symmetry rule enforced in this code, it SHOULD work.
-
+        # Is the union of the standard neighbourhood of every neighbourhood address an accurate
+        # representation of the extended neighbourhood? It should be for a `normal` cellular
+        # automata neighbourhood. Will it be for all possible special cases? With the
+        # neighbour symmetry rule enforced in this code, it SHOULD work.
     #     :returns increased_neighbourhood: address of all cells that could interact with the
-    #             origin cell in the next generation
-    #     :rtype: frozenset of cell address tuples
-    #     '''
+        #         origin cell in the next generation
+        # :rtype: frozenset of cell address tuples
+        # '''
     # def get_connected_cells(self, address: automaton_address_type) -> automaton_neighbourhood_type:
-    #     '''set of cells that interact with the start cell and each other
+        # '''set of cells that interact with the start cell and each other
 
-    #     Collect all cells that are in the extended neighbourhood of the starting cell, and the
-    #     extended neighborhoods of those neighbours recursively.
+        # Collect all cells that are in the extended neighbourhood of the starting cell, and the
+        # extended neighborhoods of those neighbours recursively.
 
-    #     The extended neighbourhood needs to be used, because empty standard neighbourhood cells
-    #     at the edge of the group can be affected by existing cell one step (unit) further away.
+        # The extended neighbourhood needs to be used, because empty standard neighbourhood cells
+        # at the edge of the group can be affected by existing cell one step (unit) further away.
 
-    #     :param address:
-    #     :type: tuple of integer dimension coordinates
-    #     :returns connected_set:
-    #     :rtype: frozenset of cell address tuples
-    #     '''
-    # def normalize(self, cells: automaton_cell_group_type) -> automaton_address_type:
-    #     '''shift group of cells to fit against all axis in the first quadrant
-
-    #     The lowest coordinate value in every dimension will be zero.
-
-    #     The bounding box for the normalized set is the origin (0, 0, …) and the returned
-    #     extent address.
-
-    #     :param cells: (in|out)
-    #     :type: set of tuples where every tuple contains integer values, and every tuple contains
-    #            the number of elements that matches the dimensions for the automaton configuration
-    #     :return extent: the largest coordinate in each dimension for the normalized set
-    #     :rtype: tuple of integers
-    #     IDEA  instead of new single reference point extent, return original lower and upper
-    #           extent address, so that the offset can be collected
-    #       Alternatively, return the delta was well as the new extent maximum
-    #       -- effectively the original minimum plus normalized maximum
-    #     '''
-    # def ?
-    #     rules and code to flip and rotate «sets of» cells in ways that to not change the
-    #     properties of the set
-    #     -- in general «not always» any of these operation on the cell neighourhood will return
-    #       the cell neighbourhood unchanged.
-    # def ?
-    #     hash of «normalized» set
+        # :param address:
+        # :type: tuple of integer dimension coordinates
+        # :returns connected_set:
+        # :rtype: frozenset of cell address tuples
+        # '''
+    # def flip_rotate(self)
+        # rules and code to flip and rotate «sets of» cells in ways that to not change the
+        # properties of the set
+        # -- in general «not always» any of these operation on the cell neighourhood will return
+        #   the cell neighbourhood unchanged.
 
     def step(self):
         '''iterate from the current generation to the next
@@ -209,22 +251,28 @@ class Automaton:
         womb_candidates = set() # no initial candidates for new cells either
         for living_cell in self.generation:
             cell_neighbourhood = self.get_neighbours(living_cell)
-            print(living_cell, "neighbourhood", cell_neighbourhood) # DEBUG
+            # print(living_cell, "neighbourhood", cell_neighbourhood) # DEBUG
             cell_neighbors = cell_neighbourhood.intersection(self._generation)
             neighbour_count = len(cell_neighbors)
-            print(living_cell, neighbour_count, "neighbors", cell_neighbors) # DEBUG
+            # print(living_cell, neighbour_count, "neighbors", cell_neighbors) # DEBUG
+            print(living_cell, neighbour_count, "neighbors") # DEBUG
             if neighbour_count in self._survive:
                 next_generation.add(living_cell)
             empty_cell = cell_neighbourhood.difference(cell_neighbors)
-            print(living_cell, len(empty_cell), "no neighbours", empty_cell) # DEBUG
+            # print(living_cell, len(empty_cell), "no neighbours", empty_cell) # DEBUG
+            assert neighbour_count + len(empty_cell) == self.neighbourhood_size, \
+                "living and dead neighbours should add up to neighbourhood size"
+            # print(living_cell, neighbour_count, "neighbors,",
+            #     len(empty_cell), "no neighbours") # DEBUG
             womb_candidates.update(empty_cell)
-        print(len(womb_candidates), "womb candidates", womb_candidates)
+        # print(len(womb_candidates), "womb candidates", womb_candidates) # DEBUG
+        print(len(womb_candidates), "womb candidates") # DEBUG
         for womb_cell in womb_candidates:
             womb_neighbourhood = self.get_neighbours(womb_cell)
             # print(womb_cell, "womb neighbourhood", womb_neighbourhood) # DEBUG
             womb_neighbors = womb_neighbourhood.intersection(self._generation)
             parent_count = len(womb_neighbors)
-            print(womb_cell, parent_count, "parents", womb_neighbors) # DEBUG
+            # print(womb_cell, parent_count, "parents", womb_neighbors) # DEBUG
             if parent_count in self._birth:
                 next_generation.add(womb_cell)
         self._generation = next_generation
