@@ -18,7 +18,7 @@ shell to work with automaton class
 
 # local application/library specific imports
 # from commontools import constant
-from automaton import Automaton
+from automaton import AutomataUniverse, Automaton
 
 # validate data against type hints
 # https://stackoverflow.com/questions/50563546/validating-detailed-types-in-python-dataclasses
@@ -69,7 +69,59 @@ def _three_cell_diagonal(instance: Automaton, offset_x: int = 0, offset_y: int =
     template = [(0, 0), (1, 1), (2, 2)]
     instance.merge_cells(offset_cells(template, offset_x, offset_y))
 
+NEIGHBOURS_LIST = [
+    (-1,-1),
+    (-1,0),
+    (-1,1),
+    (0,1),
+    (0,-1),
+    (1,-1),
+    (1,0),
+    (1,1)
+]
+NEIGHBOURS = frozenset((
+    (-1,-1),
+    (-1,0),
+    (-1,1),
+    (0,1),
+    (0,-1),
+    (1,-1),
+    (1,0),
+    (1,1)
+))
+assert NEIGHBOURS == frozenset(NEIGHBOURS_LIST)
+
 def my_main():
+    '''wrapper for test/start code so that variables do not look like constants'''
+    # old instantiation test lines
+        # uni = AutomataUniverse(None)
+        # uni = AutomataUniverse([])
+        # uni = AutomataUniverse("tesr")
+        # uni = AutomataUniverse("test")
+        # uni = AutomataUniverse([tuple(), tuple()])
+        # uni = AutomataUniverse([tuple(), (1,2)])
+        # uni = AutomataUniverse([(-1,),(1,)]) # good «single argument»
+        # uni = AutomataUniverse([(-1,-1),(1,1)]) # good «single argument»
+        # uni = AutomataUniverse(NEIGHBOURS_LIST) # good «single argument»
+        # uni = AutomataUniverse(frozenset(NEIGHBOURS_LIST)) # good «single argument»
+        # uni = AutomataUniverse(NEIGHBOURS) # good «single argument»
+        # uni = AutomataUniverse(NEIGHBOURS, None)
+        # uni = AutomataUniverse(NEIGHBOURS, "test")
+        # uni = AutomataUniverse(NEIGHBOURS, "step")
+        # uni = AutomataUniverse(NEIGHBOURS, []) # good «two arguments»
+        # uni = AutomataUniverse(NEIGHBOURS, [-1])
+        # uni = AutomataUniverse(NEIGHBOURS, [9])
+        # uni = AutomataUniverse(NEIGHBOURS, [0.5])
+        # uni = AutomataUniverse(NEIGHBOURS, [0, 1, 2, 3, 4, 5, 6, 7, 8]) # good «two arguments»
+        # uni = AutomataUniverse(NEIGHBOURS, [2,3]) # good «two arguments»
+        # uni = AutomataUniverse(NEIGHBOURS, [2,3], [3]) # good
+        # uni = AutomataUniverse(NEIGHBOURS, (2,3), (3,)) # good
+        # uni = AutomataUniverse(NEIGHBOURS, set((2,3)), frozenset((3,))) # good
+        # uni = AutomataUniverse(NEIGHBOURS, [2,3], [3]) # good
+    uni = AutomataUniverse(NEIGHBOURS_LIST, [2,3], [3]) # good
+    print("universe dimensions", uni.dimensions)
+
+def my_main2():
     '''wrapper for test/start code so that variables do not look like constants'''
     # old instantiation test lines
         # amn = Automaton(None)
@@ -84,27 +136,17 @@ def my_main():
         # amn = Automaton(frozenset(((-2,),(1,))))
         # amn = Automaton(frozenset(((-1,),(1,)))) # good «single argument»
         # amn = Automaton(frozenset(((-1,-1),(1,1)))) # good «single argument»
-        # amn = Automaton(neighbours) # good «single argument»
-        # amn = Automaton(neighbours, None)
-        # amn = Automaton(neighbours, ('a',))
-        # amn = Automaton(neighbours, ('a', None))
-        # amn = Automaton(neighbours, (frozenset(), None))
-        # amn = Automaton(neighbours, (frozenset(), frozenset()))
-        # amn = Automaton(neighbours, (frozenset('a'), frozenset((None,))))
-        # amn = Automaton(neighbours, (frozenset((0,)), frozenset([99])))
-        # amn = Automaton(neighbours, (frozenset((2,)), frozenset([99])))
+        # amn = Automaton(NEIGHBOURS) # good «single argument»
+        # amn = Automaton(NEIGHBOURS, None)
+        # amn = Automaton(NEIGHBOURS, ('a',))
+        # amn = Automaton(NEIGHBOURS, ('a', None))
+        # amn = Automaton(NEIGHBOURS, (frozenset(), None))
+        # amn = Automaton(NEIGHBOURS, (frozenset(), frozenset()))
+        # amn = Automaton(NEIGHBOURS, (frozenset('a'), frozenset((None,))))
+        # amn = Automaton(NEIGHBOURS, (frozenset((0,)), frozenset([99])))
+        # amn = Automaton(NEIGHBOURS, (frozenset((2,)), frozenset([99])))
 
-    neighbours = frozenset((
-        (-1,-1),
-        (-1,0),
-        (-1,1),
-        (0,1),
-        (0,-1),
-        (1,-1),
-        (1,0),
-        (1,1)
-    ))
-    amn = Automaton(neighbours, (frozenset((2,3)), frozenset([3]))) # good «2 arguments»
+    amn = Automaton(NEIGHBOURS, (frozenset((2,3)), frozenset([3]))) # good «2 arguments»
     print("dimensions", amn.dimensions)
     print("neighbourhood", amn.neighbourhood)
     # print("extent", amn._get_extent(amn.neighbourhood))
@@ -133,4 +175,5 @@ def my_main():
 
 # Standalone module execution
 if __name__ == "__main__":
-    my_main()
+    # my_main()
+    my_main2()
