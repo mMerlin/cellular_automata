@@ -294,6 +294,7 @@ class AutomataUniverse:
             if not isinstance(coord, int):
                 return False
         return True
+    # end def is_universe_address()
 
     def validate_address(self, address: AHint.CellAddressType):
         '''verify address is valid for the universe

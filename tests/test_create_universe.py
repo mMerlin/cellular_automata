@@ -230,6 +230,51 @@ BAD_BIRTH_COUNTS = (
     frozenset(BAD_BIRTH_COUNTS_SRC[5]),
 )
 
+GOOD_2D_ADDRESS = (
+    (1, 2),
+    (-1555, 987777),
+)
+BAD_ADDRESS_NOT_TUPLE = (
+    ("step", type("")),
+    (-1, type(0)),
+    (frozenset((0,)), type(frozenset())),
+    (set([0,]), type(set())),
+    ({1: 'test', 2: 'test'}, type(dict())),
+    (99999, type(0)),
+    (frozenset([99999]), type(frozenset())),
+)
+BAD_ADDRESS_NOT_2_DIMENSIONS = (
+    (tuple(), 0),
+    ((8,), 1),
+    ((2.1,), 1),
+    ((1, -2, 4), 3),
+)
+BAD_ADDRESS_COORD_NOT_INTEGER = (
+    ((1, None), type(None)),
+    ((None, -1), type(None)),
+    ((2, "z"), type("")),
+    (("a", -2), type("")),
+    ((1, 1.1), type(0.1)),
+    ((1.2, -1), type(0.1)),
+    ((1, set()), type(set())),
+    ((set(), -1), type(set())),
+)
+
+GOOD_2D_MATRIX = (
+    ((1, 0), (0, 1)),
+    ((0, -1), (1, 0)),
+    ((99, -9), (11, 0)),
+)
+BAD_2D_MATRIX_VECTOR_COUNT = (
+    ((1,2),),
+    ((1,2),(3,4),(5,6)),
+)
+
+
+NOT_ROTATION_MATRIX = (
+    None,
+)
+
 # Data for testing automata cell «address» group operations
 GOOD_POPULATION_SRC = (
 )
@@ -269,6 +314,19 @@ def plural_suffix(count: int) -> str:
 def required_positional_message(missing: int) -> str:
     return re.compile("__init__[(][)] missing {} required positional argument{}: .*".format(
         missing, plural_suffix(missing)))
+def base_universe_instance() -> AutomataUniverse:
+    '''create and return universe instance
+
+    Use when further steps do not need the parameters used to create the universe instance
+
+    :returns: standard 2 dimensional rectangular grid automata universe
+    :rtype: AutomataUniverse
+    '''
+    test_neighbourhood = NEIGHBOURHOOD_2D
+    test_survival = GOOD_SURVIVAL_COUNTS[0]
+    test_birth = GOOD_BIRTH_COUNTS[0]
+    return AutomataUniverse(test_neighbourhood, test_survival, test_birth)
+
 
 def test_no_arguments() -> None:
     '''no arguments supplied when 3 expected'''
@@ -509,16 +567,146 @@ def test_properties() -> None:
     assert isinstance(uni, AutomataUniverse)
     assert isinstance(uni.dimensions, int)
     assert uni.dimensions == 2 # previously caused pylint crash/trace
-    # assert isinstance(uni.neighbourhood, frozenset)
-    # assert uni.neighbourhood == frozenset(test_neighbourhood)
-    # assert isinstance(uni.neighbourhood_population, int)
-    # assert uni.neighbourhood_population == len(test_neighbourhood)
-    # assert isinstance(uni.survival_rules, frozenset)
-    # assert uni.survival_rules == frozenset(test_survival)
-    # assert isinstance(uni.birth_rules, frozenset)
-    # assert uni.birth_rules == frozenset(test_birth)
-    # assert isinstance(hash(uni), int)
-    # assert hasattr(uni, "__hash__")
+    assert isinstance(uni.neighbourhood, frozenset)
+    assert uni.neighbourhood == frozenset(test_neighbourhood)
+    assert isinstance(uni.neighbourhood_population, int)
+    assert uni.neighbourhood_population == len(test_neighbourhood)
+    assert isinstance(uni.survival_rules, frozenset)
+    assert uni.survival_rules == frozenset(test_survival)
+    assert isinstance(uni.birth_rules, frozenset)
+    assert uni.birth_rules == frozenset(test_birth)
+    assert isinstance(hash(uni), int)
+    assert hasattr(uni, "__hash__")
+
+def test_validate_address_not_tuple() -> None:
+    '''address parameter is not a tuple'''
+    uni = base_universe_instance()
+    assert len(BAD_ADDRESS_NOT_TUPLE) > 0
+    for (address, err_type) in BAD_ADDRESS_NOT_TUPLE:
+        with pytest.raises(TypeError) as excinfo:
+            uni.validate_address(address)
+        verify_general_exception_tuple(excinfo, 2)
+        assert excinfo.value.args[0] == (err_type, "automata universe address is not a tuple")
+def test_validate_address_bad_dimensions() -> None:
+    '''address parameter coordinates do not match universe dimensions'''
+    uni = base_universe_instance()
+    assert uni.dimensions == 2
+    assert len(BAD_ADDRESS_NOT_2_DIMENSIONS) > 0
+    for (address, dim) in BAD_ADDRESS_NOT_2_DIMENSIONS:
+        with pytest.raises(ValueError) as excinfo:
+            uni.validate_address(address)
+        verify_general_exception_tuple(excinfo, 3)
+        assert excinfo.value.args[0] == (uni.dimensions, dim, "automata universe address "
+            "does not have the same number of dimensions as the universe")
+def test_validate_address_not_integer() -> None:
+    '''coordinate in address parameter is not an integer'''
+    uni = base_universe_instance()
+    assert len(BAD_ADDRESS_COORD_NOT_INTEGER) > 0
+    for (address, err_type) in BAD_ADDRESS_COORD_NOT_INTEGER:
+        with pytest.raises(TypeError) as excinfo:
+            uni.validate_address(address)
+        verify_general_exception_tuple(excinfo, 2)
+        assert excinfo.value.args[0] == (err_type,
+            "automata universe address coordinate is not an integer")
+def test_validate_good_address() -> None:
+    '''good 2D address'''
+    uni = base_universe_instance()
+    assert len(GOOD_2D_ADDRESS) > 0
+    for address in GOOD_2D_ADDRESS:
+        uni.validate_address(address)
+
+def test_universe_address_false() -> None:
+    '''parameter is not a valid (2D) universe address'''
+    uni = base_universe_instance()
+    bad_address = [case for (case, _err) in BAD_ADDRESS_NOT_TUPLE]
+    for (case, _err) in BAD_ADDRESS_NOT_2_DIMENSIONS:
+        bad_address.append(case)
+    for (case, _err) in BAD_ADDRESS_COORD_NOT_INTEGER:
+        bad_address.append(case)
+    assert len(bad_address) > 0
+    for address in bad_address:
+        assert uni.is_universe_address(address) is False
+def test_universe_address_true() -> None:
+    '''parameter is a valid (2D) universe address'''
+    uni = base_universe_instance()
+    assert len(GOOD_2D_ADDRESS) > 0
+    for address in GOOD_2D_ADDRESS:
+        assert uni.is_universe_address(address) is True
+
+
+def test_validate_matrix_not_iterable() -> None:
+    '''matrix parameter is not iterable'''
+    uni = base_universe_instance()
+    assert len(BAD_NEIGHBOURHOOD_TYPE_NOT_ITER) > 0
+    for (matrix, err_obj) in BAD_NEIGHBOURHOOD_TYPE_NOT_ITER:
+        expected = "'{}' object is not iterable".format(err_obj)
+        with pytest.raises(TypeError, match=re.compile(expected)):
+            uni.validate_matrix(matrix)
+def test_validate_matrix_not_tuple() -> None:
+    '''matrix parameter contains address that is not a tuple'''
+    uni = base_universe_instance()
+    assert len(BAD_NEIGHBOURHOOD_ELE_NOT_TUPLE) > 0
+    for (matrix, err_type) in BAD_NEIGHBOURHOOD_ELE_NOT_TUPLE:
+        assert isinstance(matrix, Iterable)
+        with pytest.raises(TypeError) as excinfo:
+            uni.validate_matrix(matrix)
+        verify_general_exception_tuple(excinfo, 2)
+        assert excinfo.value.args[0] == (err_type, "automata universe address is not a tuple")
+def test_validate_matrix_bad_vector_dimensions() -> None:
+    '''matrix contains address with dimensions different from universe'''
+    uni = base_universe_instance()
+    assert uni.dimensions == 2
+    assert len(BAD_NEIGHBOURHOOD_DIMENSIONS) > 0
+    for (matrix, u_dim, a_dim) in BAD_NEIGHBOURHOOD_DIMENSIONS:
+        assert u_dim == uni.dimensions
+        with pytest.raises(ValueError) as excinfo:
+            assert isinstance(matrix, Iterable)
+            uni.validate_matrix(matrix)
+        verify_general_exception_tuple(excinfo, 3)
+        assert excinfo.value.args[0] == (uni.dimensions, a_dim, "automata universe address "
+            "does not have the same number of dimensions as the universe")
+def test_validate_matrix_not_integer() -> None:
+    '''matrix contains address with non-integer coordinate'''
+    uni = base_universe_instance()
+    assert len(BAD_NEIGHBOURHOOD_COORDINATE) > 0
+    for (matrix, err_type) in BAD_NEIGHBOURHOOD_COORDINATE:
+        assert isinstance(matrix, Iterable)
+        with pytest.raises(TypeError) as excinfo:
+            uni.validate_matrix(matrix)
+        verify_general_exception_tuple(excinfo, 2)
+        assert excinfo.value.args[0] == (err_type,
+            "automata universe address coordinate is not an integer")
+def test_validate_matrix_bad_matrix_dimensions() -> None:
+    '''matrix contains number of vectors different from universe dimensions'''
+    uni = base_universe_instance()
+    assert uni.dimensions == 2
+    assert len(BAD_2D_MATRIX_VECTOR_COUNT) > 0
+    for matrix in BAD_2D_MATRIX_VECTOR_COUNT:
+        expected = "matrix contains {} vectors, which does not match {} dimensions " \
+            "for the configured universe".format(len(matrix), uni.dimensions)
+        with pytest.raises(TypeError, match=re.compile(expected)):
+            uni.validate_matrix(matrix)
+def test_validate_matrix_good_data() -> None:
+    '''matrix is valid for the current (2D) universe'''
+    uni = base_universe_instance()
+    assert uni.dimensions == 2
+    assert len(GOOD_2D_MATRIX) > 0
+    for matrix in GOOD_2D_MATRIX:
+        uni.validate_matrix(matrix)
+
+def test_non_iterable_matrix() -> None:
+    '''matrix test parameter is not iterable'''
+    uni = base_universe_instance()
+    assert len(BAD_NEIGHBOURHOOD_TYPE_NOT_ITER) > 0
+    for (matrix, err_obj) in BAD_NEIGHBOURHOOD_TYPE_NOT_ITER:
+        expected = "'{}' object is not iterable".format(err_obj)
+        with pytest.raises(TypeError, match=re.compile(expected)):
+            uni.is_rotation_matrix(matrix)
+
+# def test_rotation_matrix_check() -> None:
+#     '''examples'''
+#     for case in NOT_ROTATION_MATRIX:
+#         assert uni.is_rotation_matrix(case) is False
 
 
 # def test_exploration() -> None:
