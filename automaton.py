@@ -10,265 +10,50 @@ manipulation of cellular automata generations
 # standard library imports
 # import os
 # import sys
-# from typing import Tuple
 from collections.abc import Iterable
-from typing import Union
+from typing import Hashable
+# from threading import Lock
 
 # related third party imports
-# import tkinter.filedialog as tkf
 
 # local application/library specific imports
-# from commontools import constant
+import automata_typehints as AHint
+from automata_universe import AutomataUniverse
+from automata_transforms import AutomataTransforms
 
-# validate data against type hints
-# https://stackoverflow.com/questions/50563546/validating-detailed-types-in-python-dataclasses
-
-class AutomataUniverse:
-    '''properties for a cellular automata universe
-
-    :property dimensions: the number of dimension for the universe
-    :type: int
-    :property neighbourhood: all cell addresses that are neighbors of the universe origin
-    :type: frozenset of coordinate tuples for the origin cell address
-    :property survival: neighbour counts required for living cell to survive to the next generation
-    :type: frozen set of integers
-    :property birth: neighbour counts required for an empty cell to spawn into the next generation
-    :type: frozen set of integers
-    '''
-
-    automaton_address_type = tuple[int, ...]
-    neighbourhood_input_type = Iterable[automaton_address_type]
-    propagation_rule_input_type = Iterable[int]
-    automaton_cell_group_type = frozenset[automaton_address_type]
-    automaton_rule_count_type = frozenset[int]
-
-    def __init__(self,
-                neighbourhood: neighbourhood_input_type,
-                survival_counts: propagation_rule_input_type,
-                birth_counts: propagation_rule_input_type):
-        self._origin_neighbourhood = frozenset(neighbourhood)
-        self._survive = frozenset(survival_counts)
-        self._birth = frozenset(birth_counts)
-        self._dimensions = None
-        self._validate_universe_data(len(neighbourhood))
-        self._check_propagation_type(self._survive, len(survival_counts))
-        self._check_propagation_type(self._birth, len(birth_counts))
-        if 0 in self._birth:
-            # Given the way the processing is done, "zero" neighbours is not a valid 'birth'
-            # propagation value. It would fill the whole universe that was not a neighbor of
-            # the starting generation at the first iteration
-            raise ValueError("zero is not a valid birth propagation rule value")
-
-    # properties : getter, setter, deleter methods
-
-    @property
-    def dimensions(self) -> int:
-        return self._dimensions
-
-    @property
-    def neighbourhood(self) -> automaton_cell_group_type:
-        return self._origin_neighbourhood
-
-    @property
-    def neighbourhood_size(self) -> int:
-        '''get the size (number of cells) in the neighbourhood
-
-        :returns neighbourhood_size: number of possible neighbours for a single cell
-        :rtype: int
-        '''
-        return len(self._origin_neighbourhood)
-
-    @property
-    def survival_rules(self) -> automaton_rule_count_type:
-        return self._survive
-
-    @property
-    def birth_rules(self) -> automaton_rule_count_type:
-        return self._birth
-
-    def __hash__(self):
-        # hash of the automata universe configuration
-        return hash((self.survival_rules, self.birth_rules, self.neighbourhood))
-
-    # end of property methods
-
-    def is_universe_address(self, address: automaton_address_type) -> bool:
-        '''check whether argument is a valid universe address
-
-        :param address: coordinates for cell in automata universe
-        :type address: tuple of integers of size self.dimensions
-        :return: True when address is a valid universe cell location
-        :rtype: bool
-        '''
-        if not isinstance(address, tuple):
-            return False
-        dimensions = len(address)
-        if not dimensions == self.dimensions:
-            return False
-        for coord in address:
-            if not isinstance(coord, int):
-                return False
-        return True
-
-    def validate_address(self, address: automaton_address_type):
-        '''verify address is valid for the universe
-
-        :param address: coordinates for cell in automata universe
-        :type address: tuple of integers of size self.dimensions
-        :raises: TypeError, ValueError
-        '''
-        if not isinstance(address, tuple):
-            raise TypeError((type(address), "automata universe address is not a tuple"))
-        dimensions = len(address)
-        if not dimensions == self.dimensions:
-            raise ValueError((self.dimensions, dimensions, "automata universe address "
-                "does not have the same number of dimensions as the universe"))
-        for coord in address:
-            if not isinstance(coord, int):
-                raise TypeError((type(coord),
-                    "automata universe address coordinate is not an integer"))
-    # end def validate_address()
-
-    def get_neighbours(self, address: automaton_address_type) -> automaton_cell_group_type:
-        '''get the set of neighbours for a cell address
-
-        :param address: coordinates for cell in n-space
-        :type address: tuple of integers
-        :returns neighbours:
-        :rtype neighbours: frozenset of coordinate tuples with same dimensionality as address
-        '''
-        self.validate_address(address)
-        base_address = list(address)
-        neighbourhood = []
-        for neighbour in self._origin_neighbourhood:
-            relative_address = list(neighbour)
-            neighbourhood.append(tuple(sum(dim) for dim in zip(base_address, relative_address)))
-        return frozenset(neighbourhood)
-    # end def get_neighbours()
-
-    def _validate_universe_data(self, input_size: int):
-        '''check that the cell neighbourhood is structurally correct
-
-        Also extract the number of dimensions for the automata universe
-
-        :param input_size: the length of the neighbourhood Iterable used to create the universe
-        :type input_size: int
-        :output self._dimensions: the number of dimensions for the automata universe
-        :otype: int
-        :raises: TypeError, ValueError
-        '''
-        self._check_neighbourhood_type(input_size)
-
-        # the origin point can not a neighbour (of the origin)
-        origin = tuple([0] * self.dimensions)
-        if origin in self._origin_neighbourhood:
-            raise ValueError((origin, "the universe origin is not a valid neighbourhood address"))
-
-        # every address in the neighbourhood must have the origin as one of its neighbours
-        for addr in self._origin_neighbourhood:
-            neighbours = self.get_neighbours(addr)
-            if not origin in neighbours:
-                raise ValueError((addr, "no symmetric address in neighbourhood"))
-    # end def _validate_universe_data()
-
-    def _check_neighbourhood_type(self, input_size: int):
-        '''check that the cell neighbourhood is structurally correct
-
-        Also extract the number of dimensions for the automata universe
-
-        :param input_size: the length of the neighbourhood Iterable used to create the universe
-        :type input_size: int
-        :output self._dimensions: the number of dimensions for the automata universe
-        :otype: int
-        :raises: TypeError, ValueError
-        '''
-        # match self._origin_neighbourhood to the constructor neighourhood parameter typehint
-        neighbourhood_size = len(self._origin_neighbourhood)
-        if not neighbourhood_size == input_size:
-            raise ValueError((input_size, neighbourhood_size,
-                "Neighbourhood addresses are not unique"))
-        if neighbourhood_size < 2:
-            raise ValueError((neighbourhood_size,
-                "neighbourhood does not contain at least 2 neighbours"))
-            # Two neighbours is the absolute minimum to maintain symmetry. It would be valid
-            # for a simple one dimensional universe
-        # use first element to get the number of dimension to match for the rest
-        neighbourhood_iter = iter(self._origin_neighbourhood)
-        address = next(neighbourhood_iter)
-        if not isinstance(address, tuple):
-            raise TypeError((type(address), "element of neighbourhood is not a tuple"))
-        self._dimensions = len(address)
-        if self.dimensions < 1: # support for 1 dimensional automata?? or only 2+?
-            raise TypeError((self.dimensions,
-                "neighbourhood address does not contain at least 1 coordinate"))
-        while True:
-            self.validate_address(address)
-            try:
-                address = next(neighbourhood_iter)
-            except StopIteration:
-                break
-        # end while True:
-        # self._origin_neighbourhood confirmed to be a frozenset with at least 2 members, with all
-        # members being tuples with only integer elements. All of the tuples have at least
-        # one element, and all tuples have the same number of elements.
-    # end def _check_neighbourhood_type(input_size):
-
-    def _check_propagation_type(self, counts_rule: automaton_rule_count_type, input_size: int):
-        '''check that a cell propagation rule is structurally correct with valid values
-
-        :param counts_rule:
-        :type counts_rule: frozen set of integers
-        :param input_size: the length of the Iterable used to create the propagation rule
-        :type input_size: int
-        :raises: TypeError, ValueError
-        '''
-        rule_size = len(counts_rule)
-        if not rule_size == input_size:
-            raise ValueError((input_size, rule_size,
-                "cell propagation rule counts are not unique"))
-        # it would be "odd", but technically valid to have no counts for the rule
-        # if rule_size < 1:
-        for count in counts_rule:
-            if not isinstance(count, int):
-                raise TypeError((type(count), "cell propagation count case is not an integer"))
-            if not 0 <= count <= self.neighbourhood_size:
-                raise ValueError((count, self.neighbourhood_size,
-                    "cell propagation count case is not between 0 and neighbourhood size"))
-    # end def _check_propagation_type()
-# end class AutomataUniverse
-
+# class AutomataCells:
+#     '''Storage and operations for a group of cells in an AutomataUniverse
+#     '''
 
 class Automaton:
     '''Storage for and operations on a cellular automata
 
-    :property dimensions: the number of dimension for the current automaton
+    :property universe: the automata universe configuration
+    :type universe: AutomataUniverse
+    :property dimensions: the number of dimension for the universe
     :type: int
-    :property iteration: the current generation sequence number (starts at 0)
-    :type: int
-    :property neighbourhood: all cells that are neighbors or the universe origin
+    :property neighbourhood: all cell addresses that are neighbors of the universe origin
     :type: frozenset of coordinate tuples for the origin cell address
+    :property generation: living cells
+    :type generation: set of automata universe cell address tuples
+    :property generation_extent:
+    :type generation_extent: tuple of 2 universe cell address tuples
+    :property iteration: the current generation sequence number (starts at 0)
+    :type iteration: int
+    :property population: the number of living cells in the current generation
+    :type population: int
     '''
 
-    # aliases for typehint patterns
-    automaton_address_type = tuple[int, ...]
-    automaton_bounding_box_type = tuple[tuple[int, ...], tuple[int, ...]]
-    automaton_neighbourhood_type = frozenset[automaton_address_type]
-    automaton_cell_group_type = set[automaton_address_type]
-    automaton_rules_type = tuple[frozenset[int], frozenset[int]]
-    automaton_cells_type = Union[Iterable[automaton_address_type], automaton_address_type]
-
-    def __init__(self, neighbourhood: automaton_neighbourhood_type,
-            rules: tuple[frozenset[int], frozenset[int]]):
+    def __init__(self, universe: AutomataUniverse) -> None:
         '''constructor
 
-        :param neighourhood: the neighbors of the origin point (0, 0, …)
-        :type neighourhood: frozen set of tuples of integers; all tuples with same number elements
-        :param rules:
-        :type rules: tuple with 2 elements, each of which is a frozenset of integers
+        :param universe: parent cellular automata universe configuration
+        :type universe: AutomataUniverse
         '''
-        self._universe = AutomataUniverse(neighbourhood, rules[0], rules[1])
+        self._universe = universe
         self._generation = set()
         self._iteration = 0
+        self._transforms = AutomataTransforms(universe)
 
     # properties : getter, setter, deleter methods
 
@@ -286,7 +71,7 @@ class Automaton:
         return len(self._generation)
 
     @iteration.setter
-    def iteration(self, new_iteration):
+    def iteration(self, new_iteration) -> None:
         '''set generation sequence number for the current set
 
         :param new_iteration: generation sequence number to use
@@ -299,21 +84,21 @@ class Automaton:
     # end iteration() property setter
 
     @property
-    def neighbourhood(self) -> automaton_neighbourhood_type:
+    def neighbourhood(self) -> AHint.NeighbourhoodType:
         return self._universe.neighbourhood
 
     @property
-    def neighbourhood_size(self) -> int:
+    def neighbourhood_population(self) -> int:
         '''get size of neighbourhood
 
-        :returns neighbourhood_size: number of neighbours for a single cell
+        :returns population: number of neighbours for a single cell
         :rtype: int
         '''
-        return len(self._universe.neighbourhood_size)
+        return len(self._universe.neighbourhood_population)
 
     @property
-    def generation(self) -> automaton_neighbourhood_type:
-        '''get the universe for the current generation
+    def generation(self) -> AHint.CellGroupSnapshotType:
+        '''get the universe content for the current generation
 
         :returns current: living cells in the current generation
         :rtype: frozenset of cell address tuples
@@ -322,20 +107,22 @@ class Automaton:
     # end generation property getter
 
     @property
-    def generation_extent(self) -> automaton_bounding_box_type:
+    def generation_extent(self) -> AHint.BoundingBoxType:
         return self._get_extent(self.generation)
 
     # end of property methods
 
     # general methods
 
-    def __hash__(self):
+    def clear(self) -> None:
+        self._generation.clear()
+
+    def __hash__(self) -> int:
         # hash of the configuration and dynamic data of the automaton
         return hash((self._universe.survival_rules, self._universe.birth_rules,
-            self._universe.neighbourhood, self.iteration, self.generation))
+            self._universe.neighbourhood, self._transforms, self.iteration, self.generation))
 
-    def _get_extent(self, cells: automaton_cell_group_type) \
-            -> automaton_bounding_box_type:
+    def _get_extent(self, cells: AHint.CellGroupWorkingType) -> AHint.BoundingBoxType:
         '''determine the n-dimensional bounding box for a set of cells
 
         :param cells:
@@ -349,15 +136,10 @@ class Automaton:
             box_min = [min(new, cur) for new, cur in zip(coord, box_min)]
             box_max = [max(new, cur) for new, cur in zip(coord, box_max)]
         return tuple((tuple(box_min), tuple(box_max)))
+    # end def _get_extent()
 
-    def _offset_cell_block(self, cells: automaton_cell_group_type,
-            offset_vector: automaton_address_type) -> automaton_cell_group_type:
-        '''add offset «vector» to each cell coordinate'''
-        assert len(offset_vector) == self.dimensions
-        # all offset integers
-        return [tuple(base + offset for base, offset in zip(c, offset_vector)) for c in cells]
-
-    def _normalize_cells(self, cells: automaton_cell_group_type) -> automaton_bounding_box_type:
+    def _normalize_cells(self, cells: AHint.CellGroupWorkingType) \
+            -> AHint.BoundingBoxType:
         # '''shift group of cells to fit against all axis in the first quadrant
 
         # The lowest coordinate value in every dimension will be zero.
@@ -374,8 +156,8 @@ class Automaton:
         # '''
         bounding_box = self._get_extent(cells)
         offset_vector = [-1 * delta for delta in bounding_box[0]]
-        normalized = self._offset_cell_block(cells, offset_vector)
-        n_max = self._offset_cell_block(bounding_box, offset_vector)
+        normalized = self._universe.cell_group_translate(cells, offset_vector)
+        # n_max = self._universe.cell_group_translate(bounding_box, offset_vector)
         # print("bb", bounding_box, "offset bb", n_max) # DEBUG
         cells.clear()
         cells.update(normalized)
@@ -383,7 +165,7 @@ class Automaton:
         return bounding_box
     # end def _normalize_cells()
 
-    def merge_cells(self, cells: automaton_cells_type):
+    def merge_cells(self, cells: AHint.CellorCellsType) -> None:
         '''add living cells to the current generation
 
         Cells that already exist in the current generation are ignored
@@ -403,7 +185,19 @@ class Automaton:
         self._generation.update(cells)
     # end merge_cells()
 
-    # def erase_cells(self, cells: automaton_cells_type):
+    def step(self) -> None:
+        '''iterate from the current generation to the next'''
+        next_generation = self._universe.step(self.generation)
+        # self.generation = next_generation
+        self._generation.clear()
+        self._generation.update(next_generation)
+    # end def step()
+
+    def add_transform(self, key: Hashable, transform: AHint.TransformInputType) -> None:
+        self._transforms.add_transform_cycle(key, transform)
+    # end def add_transform()
+
+    # def erase_cells(self, cells: AutomataTypeHints.cell_or_cells_type):
         # '''delete living cells from the current generation
 
         # Cells that do not exist in the current generation are ignored
@@ -411,7 +205,7 @@ class Automaton:
         # :param cells:
         # :type cells: single cell address tuple or iterable of cell address tuples
         # '''
-    # def _get_expanded_neighborhood(self) -> automaton_neighbourhood_type:
+    # def _get_expanded_neighborhood(self) -> AutomataTypeHints.neighbourhood_type:
         # '''neighbourhood that covers as far as it is possible of a cell to interact
 
         # Is the union of the standard neighbourhood of every neighbourhood address an accurate
@@ -422,7 +216,7 @@ class Automaton:
         #         origin cell in the next generation
         # :rtype: frozenset of cell address tuples
         # '''
-    # def get_connected_cells(self, address: automaton_address_type) -> automaton_neighbourhood_type:
+    # def get_connected_cells(self, address: AutomataTypeHints.address_type) -> AutomataTypeHints.neighbourhood_type:
         # '''set of cells that interact with the start cell and each other
 
         # Collect all cells that are in the extended neighbourhood of the starting cell, and the
@@ -436,75 +230,123 @@ class Automaton:
         # :returns connected_set:
         # :rtype: frozenset of cell address tuples
         # '''
-    # def flip_rotate(self)
-        # rules and code to flip and rotate «sets of» cells in ways that to not change the
-        # properties of the set
-        # -- in general «not always» any of these operation on the cell neighourhood will return
-        #   the cell neighbourhood unchanged.
-
-    def step(self):
-        '''iterate from the current generation to the next
-
-        Any cell in the current generation with a number of neighbors that is in the _survial rule
-        continues to the next generation
-
-        Any neighbor location of a cell in the current generation that does hold a cell is a
-        candidate to spawn a cell in«to» the next generation
-
-        Any candidate location with a number of neighbor cells in the current generation that is
-        in the _birth rule becomes a new living cell in the next generation
-        '''
-        next_generation = set() # start with an empty next generation cell set
-        womb_candidates = set() # no initial candidates for new cells either
-        for living_cell in self.generation:
-            cell_neighbourhood = self._universe.get_neighbours(living_cell)
-            # print(living_cell, "neighbourhood", cell_neighbourhood) # DEBUG
-            cell_neighbors = cell_neighbourhood.intersection(self._generation)
-            neighbour_count = len(cell_neighbors)
-            # print(living_cell, neighbour_count, "neighbors", cell_neighbors) # DEBUG
-            print(living_cell, neighbour_count, "neighbors") # DEBUG
-            if neighbour_count in self._universe.neighbourhood:
-                next_generation.add(living_cell)
-            empty_cell = cell_neighbourhood.difference(cell_neighbors)
-            # print(living_cell, len(empty_cell), "no neighbours", empty_cell) # DEBUG
-            assert neighbour_count + len(empty_cell) == self.neighbourhood_size, \
-                "living and dead neighbours should add up to neighbourhood size"
-            # print(living_cell, neighbour_count, "neighbors,",
-            #     len(empty_cell), "no neighbours") # DEBUG
-            womb_candidates.update(empty_cell)
-        # print(len(womb_candidates), "womb candidates", womb_candidates) # DEBUG
-        print(len(womb_candidates), "womb candidates") # DEBUG
-        for womb_cell in womb_candidates:
-            womb_neighbourhood = self._universe.get_neighbours(womb_cell)
-            # print(womb_cell, "womb neighbourhood", womb_neighbourhood) # DEBUG
-            womb_neighbors = womb_neighbourhood.intersection(self._generation)
-            parent_count = len(womb_neighbors)
-            # print(womb_cell, parent_count, "parents", womb_neighbors) # DEBUG
-            if parent_count in self._universe.birth_rules:
-                next_generation.add(womb_cell)
-        self._generation = next_generation
-        self._iteration += 1
 # end class Automaton
 
-def my_main():
+
+SQUARE_GRID_NEIGHBORS = [
+    (-1,-1), (-1,0), (-1,1),
+    (0,1),           (0,-1),
+    (1,-1),  (1,0),  (1,1)
+]
+ROTATE90 = [(0, -1), (1, 0)]
+
+def _validate_and_expand_matrices(atm: Automaton, uni: AutomataUniverse,
+        r_input: AHint.RotateReflectInputType) -> None:
+    '''check supplied matrices and expand to all permutations
+
+    Verify that the supplied rotation and reflection matrices are consistent with the universe.
+    Each matrix must be cyclic. That is, repeated operations using the matrix must return
+    the data to the starting pattern in a few steps.
+
+    The raw input needs to be an iterable object containing one or more square matrices.
+    Each matrix must have a number or elements matching the dimensions of the universe, and
+    the elements are cell addresses.
+
+    After validation, build nested tuples from the input, to be compatible with hashing.
+
+    :param r_input: one or more rotation and reflection matrices
+    :rtype r_input: iterable of iterable of cell address tuples
+    :output self._rotate_reflect: all matrices that generate equivalent rotated and
+        reflected (flipped) cell patterns
+    :otype self._rotate_reflect: tuple of tuples of cell address tuples
+    '''
+    print("start _validate_and_expand_matrices") # DEBUG
+    # RotateReflectInputType = Iterable[Iterable[CellAddressType]]
+    r_matrices = set()
+    r_mat_count = len(r_matrices)
+    if not isinstance(r_input, Iterable):
+        # TypeError: 'NoneType' object is not iterable
+        # raise TypeError("{} object is not iterable".format(type(r_input)))
+        raise TypeError(type(r_input), "object is not iterable")
+    if len(r_input) < 1:
+        raise ValueError("universe must have at least one rotation or reflection symmetry")
+    for mat in r_input:
+        if not isinstance(mat, Iterable):
+            raise TypeError(type(mat), "object is not iterable")
+        if not len(mat) == atm.dimensions:
+            raise TypeError("{} rows is not valid for matrix operation in universe "
+                "with {} dimensions".format(len(mat), atm.dimensions))
+        working_matrix = []
+        for adr in mat:
+            uni.validate_address(adr)
+            working_matrix.append(adr)
+        # r_matrices.update(tuple(adr) for adr in mat)
+        r_matrices.add(tuple(working_matrix))
+        if len(r_matrices) != 1 + r_mat_count:
+            raise ValueError(tuple(working_matrix), "duplicate symmetry matrix encountered")
+        r_mat_count += 1
+    print("working r_and_m", r_matrices, hash(frozenset(r_matrices))) # DEBUG
+    for ele in r_matrices:
+        print(hash(ele)) # DEBUG
+    # all of the rotation or reflection matrices are at least structurally valid for the
+    # configured universe. They have the correct shape.
+    # check for duplicates and cycle sizes
+    # first 1000 prime numbers
+    #   https://en.wikipedia.org/wiki/List_of_prime_numbers#The_first_1000_prime_numbers
+    # not all counting numbers might be valid as cell address coordinates. Currently there is
+    # no process to validate that case.
+    mat = list(r_matrices)[0]
+    test = (5, 37) # DEBUG
+    print(type(test), test, hash(test)) # DEBUG
+    test = uni.vector_dot_product(test, mat) # DEBUG
+    print(type(test), test, hash(test)) # DEBUG
+    test = uni.vector_dot_product(test, mat) # DEBUG
+    print(type(test), test, hash(test)) # DEBUG
+    test = uni.vector_dot_product(test, mat) # DEBUG
+    print(type(test), test, hash(test)) # DEBUG
+    test = uni.vector_dot_product(test, mat) # DEBUG
+    print(type(test), test, hash(test)) # DEBUG
+    print("") # DEBUG
+
+    test = None # _test_prime_set(uni.dimensions)
+    print("prime cells", test, hash(test)) # DEBUG
+    test = uni.cell_group_transform(test, mat) # DEBUG
+    print(test, hash(test)) # DEBUG
+    test = uni.cell_group_transform(test, mat) # DEBUG
+    print(test, hash(test)) # DEBUG
+    test = uni.cell_group_transform(test, mat) # DEBUG
+    print(test, hash(test)) # DEBUG
+    test = uni.cell_group_transform(test, mat) # DEBUG
+    print(test, hash(test)) # DEBUG
+    print("") # DEBUG
+
+    # self._rotate_reflect = frozenset(r_matrices)
+# end def _validate_and_expand_matrices()
+
+def matrix_test(instance: Automaton) -> None:
+    '''exercise transform validation and setup'''
+    tr_mat = ROTATE90 # GOOD
+    tr_key = "Rotate 90°"
+    instance.add_transform(tr_key, tr_mat)
+
+def my_main() -> None:
     '''wrapper for test/start code so that variables do not look like constants'''
     # code to minimally exercise the class methods
-    neighbours = [
-        (-1,-1), (-1,0), (-1,1),
-        (0,1),           (0,-1),
-        (1,-1),  (1,0),  (1,1)
-    ]
-    instance = Automaton(neighbours, [[2,3], [3]])
+    # universe = AutomataUniverse(SQUARE_GRID_NEIGHBORS, [2,3], [3], [rotate90, horizontal_mirror])
+    universe = AutomataUniverse(SQUARE_GRID_NEIGHBORS, [2,3], [3])
+    instance = Automaton(universe)
     print("dimensions", instance.dimensions)
     print("neighbourhood", instance.neighbourhood)
     print("generation", instance.iteration)
     instance.iteration = 2
     print("generation", instance.iteration)
     instance.merge_cells((0, 0))
-    # print(instance.current)
-    # for cell in instance.current:
+    # print(instance.generation)
+    # for cell in instance.generation:
     #     print(cell)
     print("current generation", list(instance.generation))
+    print()
+    matrix_test(instance)
 
 
 # Standalone module execution

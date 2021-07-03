@@ -10,11 +10,24 @@ Exploration of concept code to handle multiple¦variable cellular automata dimen
 </br></br>
 
 * [Concepts](#link_concepts)
+* [References](#link_reference)
 
 <!--
 * [Link](#link_link)
 ## <a name="link_link">⚓</a> Link
 -->
+
+## <a name="link_reference">⚓</a> References
+
+* [dot product](https://stackoverflow.com/questions/25592838/generics-of-raw-types-int-float-double-create-weird-error-messages)
+* [Multiplying Matrices and Vectors](https://hadrienj.github.io/posts/Deep-Learning-Book-Series-2.2-Multiplying-Matrices-and-Vectors/)
+* [multiply two matrices](https://www.geeksforgeeks.org/python-program-multiply-two-matrices/)
+* [n dimensional vector dot product](https://stackoverflow.com/questions/28307008/how-to-write-a-function-to-do-the-dot-product-on-n-dimensional-vector)
+
+* [pytest docs](https://docs.pytest.org/en/latest/)
+* [pytest getting started](https://docs.pytest.org/en/latest/getting-started.html#get-started)
+* [pytest how to assert](https://docs.pytest.org/en/latest/how-to/assert.html)
+* [pytest good practices](https://docs.pytest.org/en/latest/explanation/goodpractices.html#test-discovery)
 
 ## <a name="link_concepts">⚓</a> Concepts
 
@@ -22,11 +35,9 @@ An automaton `cell` is in one of 2 states. Alive or dead. Its only property is i
 
 A living cell will either propagate to the next generation or not based only on its neighbours. Specifically the number of living neighbours in the current generation.
 
-A currently dead cell will come to life «be created» in the next generation base only on its neighbours.
+A currently dead cell will come to life «be created» in the next generation ba## <a name="link_reference">⚓</a> References
 
-A dead cell will never be created when there are zero living neighbours.
-
-neighbours are symmetrical. A cell that has a neighbour at «address» is a neighbour of the cell at «address». «address == n-dimensional coordinates»
+Neighbours are symmetrical. A cell that has a neighbour at «address» is a neighbour of the cell at «address». «address == n-dimensional coordinates»
 
 It is not necessary to search the whole dimensional space to check for dead cells that need to be created in the next generation. It is sufficient to check the dead cells that are neighbours of living cells in the current generation. A dead cell in the current generation that is not a neighbour of a living cell in the current generation can not possibly be born into the next generation.
 
