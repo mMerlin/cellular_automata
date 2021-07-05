@@ -1,3 +1,5 @@
 # recreate from Pipfile
-Pipfile.lock
 !.pylintrc
+Pipfile.lock
+.coverage
+htmlcov

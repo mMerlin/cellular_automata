@@ -29,13 +29,22 @@ Exploration of concept code to handle multiple¦variable cellular automata dimen
 * [pytest how to assert](https://docs.pytest.org/en/latest/how-to/assert.html)
 * [pytest good practices](https://docs.pytest.org/en/latest/explanation/goodpractices.html#test-discovery)
 
+* [pytest-cov plugin reference](https://pytest-cov.readthedocs.io/en/latest/config.html#reference)
+
+* [rotation matrix in 3d](https://en.wikipedia.org/wiki/Rotation_matrix#In_three_dimensions)
+* [matrix orthogonal rotation](http://www.euclideanspace.com/maths/algebra/matrix/orthogonal/rotation/)
+* [determinant index](https://www.euclideanspace.com/maths/algebra/matrix/functions/determinant/index.htm)
+* [determinant of a matrix](https://www.geeksforgeeks.org/determinant-of-a-matrix/) **
+
 ## <a name="link_concepts">⚓</a> Concepts
 
 An automaton `cell` is in one of 2 states. Alive or dead. Its only property is its location. Its address in n-dimensional space.
 
 A living cell will either propagate to the next generation or not based only on its neighbours. Specifically the number of living neighbours in the current generation.
 
-A currently dead cell will come to life «be created» in the next generation ba## <a name="link_reference">⚓</a> References
+A currently dead cell will come to life «be created» in the next generation based only on its neighbours. Specifically the number of living neighbours in the current generation.
+
+'birthing' a cell that has zero living neighbours is not valid. Allowing that would immediately (first generation step) fill the whole universe that is not included in the neighbourhood of the initial populations of cells.
 
 Neighbours are symmetrical. A cell that has a neighbour at «address» is a neighbour of the cell at «address». «address == n-dimensional coordinates»
 
@@ -45,9 +54,9 @@ The extent of the cell neighbourhood determines how much the extent of all livin
 
 Using «multiples of» an integer cell to cell distance in each dimension, a tuple of integers can be used to specify any cell address. A tuple is immutable, can be added to a python set. A genertion can then be represented as a single set of the address tuples of the living cells.
 
-The neighbourhood of a cell can be represented by the relative addresses of each of the neighbors of the cell. That is the same as the address of all of the neighbours of the cell at address (0, 0, …).
+The neighbourhood of a cell can be represented by the relative addresses of each of the neighbors of the cell. That is the same as the address of all of the neighbours of the origin cell at address (0, 0, …).
 
-The intersection of the «living» generation set and the «count of» neighbors of a cell determine if that cell survives in the next generation.
+The size «living cell count» of the intersection of the «living» generation set and the neighbors of a cell determine if that cell survives in the next generation.
 
 All of the neighbour cells that are dead (do not exist) in the current generation are candidates to be born in the next generation. The union of the dead neighbours of all living cells in one generation are the only cells that need be checked for creation in the next generation «based on the count of living neighbors of the dead cells».
 

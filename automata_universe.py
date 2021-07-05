@@ -8,9 +8,10 @@ manipulation of cellular automata generations
 # pipenv shell
 
 # standard library imports
-import math
 # local application/library specific imports
 import automata_typehints as AHint
+from math_tools import (identity_matrix, matrix_transform, matrix_transpose,
+    vector_dot_product, matrix_determinant)
 
 class AutomataUniverse:
     '''properties for a cellular automata universe
@@ -67,7 +68,7 @@ class AutomataUniverse:
     def neighbourhood_population(self) -> int:
         '''get the size (number of cells) in the neighbourhood
 
-        :returns population: number of possible neighbours for a single cell
+        :returns: number of possible neighbours for a single cell
         :rtype: int
         '''
         return len(self._origin_neighbourhood)
@@ -80,6 +81,10 @@ class AutomataUniverse:
     def birth_rules(self) -> AHint.PropagationRuleType:
         return self._birth
 
+    @property
+    def identity_matrix(self) -> AHint.TransformType:
+        return identity_matrix(self.dimensions)
+
     # end of property methods
 
     def __hash__(self) -> int:
@@ -88,39 +93,21 @@ class AutomataUniverse:
         #     self._rotate_reflect))
         return hash((self.survival_rules, self.birth_rules, self.neighbourhood))
 
-    def is_rotation_matrix(self, matrix: AHint.TransformInputType):
-        '''check if the matrix is a valid rotation (about the origin) matrix for the universe
+    def is_rotation_matrix(self, matrix: AHint.TransformInputType) -> bool:
+        '''check if the matrix is a valid pure rotation (about an axis) matrix for the universe
 
-        https://en.wikipedia.org/wiki/Rotation_matrix#In_three_dimensions
+        M · M<sup>T</sup> = I, and det(M) = 1
 
         :param matrix: possible rotation matrix
         :type matrix: Iterable of «dimension» cell address tuples
+        :returns: input is a pure rotational matrix
+        :rtype: bool
         '''
         self.validate_matrix(matrix)
-        if self.dimensions != 2:
-            raise NotImplementedError("rotation matrix check only implemented for 2 dimensions")
-        # print("is_rotation_matrix?", len(matrix), len(matrix[0]), self.dimensions) # DEBUG
-        try:
-            rotation_radians = [math.acos(matrix[0][0]), math.asin(-matrix[0][1]),
-                math.asin(matrix[1][0]), math.acos(matrix[1][1])]
-        except ValueError as ex:
-            if ex.args != ("math domain error",):
-                raise
+        transposed = matrix_transpose(matrix)
+        if self.matrix_transform(matrix, transposed) != self.identity_matrix:
             return False
-        rotation_degrees = tuple(math.degrees(rad_angle) for rad_angle in rotation_radians)
-        # print(rotation_radians) # DEBUG
-        # print(rotation_degrees,
-        #     rotation_degrees[0] == rotation_degrees[3],
-        #     rotation_degrees[1] == rotation_degrees[2],
-        #     rotation_degrees[0] == rotation_degrees[1],
-        #     max(rotation_degrees[0], rotation_degrees[1]) - 180 ==
-        #     min(rotation_degrees[0], rotation_degrees[1])
-        # ) # DEBUG
-        return rotation_degrees[0] == rotation_degrees[3] and \
-            rotation_degrees[1] == rotation_degrees[2] and \
-            (rotation_degrees[0] == rotation_degrees[1] or
-            max(rotation_degrees[0], rotation_degrees[1]) - 180 ==
-            min(rotation_degrees[0], rotation_degrees[1]))
+        return matrix_determinant(matrix) == 1
     # end def is_rotation_matrix()
 
     def step(self, cells: set[AHint.CellAddressType]) -> AHint.CellGroupWorkingType:
@@ -145,28 +132,18 @@ class AutomataUniverse:
         womb_candidates = set() # no initial candidates for new cells either
         for living_cell in cells:
             cell_neighbourhood = self.neighbours(living_cell)
-            # print(living_cell, "neighbourhood", cell_neighbourhood) # DEBUG
             cell_neighbors = cell_neighbourhood.intersection(cells)
             neighbour_count = len(cell_neighbors)
-            # print(living_cell, neighbour_count, "neighbors", cell_neighbors) # DEBUG
-            print(living_cell, neighbour_count, "neighbors") # DEBUG
-            if neighbour_count in self.neighbourhood:
+            if neighbour_count in self.survival_rules:
                 new_generation.add(living_cell)
             empty_cells = cell_neighbourhood.difference(cell_neighbors)
-            # print(living_cell, len(empty_cells), "no neighbours", empty_cells) # DEBUG
             assert neighbour_count + len(empty_cells) == self.neighbourhood_population, \
                 "living and dead neighbours should add up to neighbourhood size"
-            # print(living_cell, neighbour_count, "neighbors,",
-            #     len(empty_cells), "no neighbours") # DEBUG
             womb_candidates.update(empty_cells)
-        # print(len(womb_candidates), "womb candidates", womb_candidates) # DEBUG
-        print(len(womb_candidates), "womb candidates") # DEBUG
         for womb_cell in womb_candidates:
             womb_neighbourhood = self.neighbours(womb_cell)
-            # print(womb_cell, "womb neighbourhood", womb_neighbourhood) # DEBUG
             womb_neighbors = womb_neighbourhood.intersection(cells)
             parent_count = len(womb_neighbors)
-            # print(womb_cell, parent_count, "parents", womb_neighbors) # DEBUG
             if parent_count in self.birth_rules:
                 new_generation.add(womb_cell)
         return new_generation
@@ -178,8 +155,8 @@ class AutomataUniverse:
 
         :param address: coordinates for cell in n-space
         :type address: tuple of integers
-        :returns neighbours:
-        :rtype neighbours: frozenset of coordinate tuples with same dimensionality as address
+        :returns: neighbour cell addresses
+        :rtype: frozenset of coordinate tuples with same dimensionality as address
         '''
         self.validate_address(address)
         return frozenset(tuple(sum(ele) for ele in zip(address, neighbour))
@@ -199,12 +176,13 @@ class AutomataUniverse:
         :type cells: «frozen»set of cell address tuples
         :param offset_vector: coordinate delta values
         :type offset_vector: tuple of integers
-        :returns translated (moved) cell coordinates
-        :rtype: set of tuples of «dimension» integers
+        :returns: translated (moved) cell coordinates
+        :rtype: set of cell «dimension» address tuples
         '''
         self._check_cell_group(cells)
         self.validate_address(offset_vector)
-        return [tuple(base + delta for base, delta in zip(cell, offset_vector)) for cell in cells]
+        return set(tuple(base + delta for base, delta in zip(cell, offset_vector))
+            for cell in cells)
     # end def cell_group_translate()
 
     def cell_group_transform(self, cells: AHint.CellGroupSnapshotType,
@@ -215,8 +193,8 @@ class AutomataUniverse:
         :type cells: «frozen»set of cell address tuples
         :param matrix: rotation or reflection matrix
         :type matrix: iterable of cell address vector tuples
-        :returns rotated or reflected set of cell addresses
-        :rtype frozenset of cell address tuples
+        :returns: rotated or reflected set of cell addresses
+        :rtype: frozenset of cell «dimension» address tuples
         '''
         self.validate_matrix(matrix)
         self._check_cell_group(cells)
@@ -228,15 +206,17 @@ class AutomataUniverse:
             transform: AHint.TransformInputType) -> AHint.TransformType:
         '''transform a cell address matrix through a rotation or reflection matrix
 
-        :param matrix: rotation matrix
+        C[i,j] = A[i,*] · B[*,j]
+
+        :param matrix: square matrix
         :type matrix: tuple of «dimension» cell address coordinates
-        :param transform: rotation matrix
+        :param transform: square matrix
         :type transform: tuple of «dimension» cell address coordinates
-        :returns: rotated or reflected matrix
-        :rtype: tuple of cell address tuples
+        :returns: matrix dot product
+        :rtype: tuple of «dimension» cell address tuples
         '''
         self.validate_matrix(transform)
-        return tuple(self._vector_dot_product(row, transform) for row in matrix)
+        return matrix_transform(matrix, transform)
     # end def matrix_transform()
 
     def vector_dot_product(self, vector: AHint.CellAddressType, matrix: AHint.TransformInputType) \
@@ -267,14 +247,7 @@ class AutomataUniverse:
         :type matrix: tuple of «dimension» cell address coordinates
         '''
         self.validate_address(vector)
-        # Does this still work with a one dimensional universe?
-        return tuple(sum(x * y for x, y in zip(row, vector)) for row in matrix)
-        # product = []
-        # for ele in matrix:
-        #     product.append(x*y for x,y in zip(ele, vector))
-        # result = [sum(x * y for x, y in zip(row, vector)) for row in matrix]
-        # return tuple(result)
-        # return tuple([sum(x * y for x, y in zip(row, vector)) for row in matrix])
+        return vector_dot_product(vector, matrix)
     # end def _vector_dot_product()
 
     def is_universe_address(self, address: AHint.CellAddressType) -> bool:
@@ -459,7 +432,7 @@ ROTATE90 = [(0, -1), (1, 0)]
 TEST_CELLS = frozenset(((7, 23),(41, 5)))
 ROTATED_CELLS = frozenset(((-23, 7),(-5, 41)))
 
-def vector_test(universe: AutomataUniverse):
+def vector_test(universe: AutomataUniverse): # pragma: no cover
     '''exercise vector dot product code'''
     # mat = None
     # mat = []
@@ -472,7 +445,7 @@ def vector_test(universe: AutomataUniverse):
     out_xy = universe.vector_dot_product(in_xy, mat)
     print("{} translated {}".format(in_xy, out_xy)) # DEBUG
 
-def group_test(universe: AutomataUniverse):
+def group_test(universe: AutomataUniverse): # pragma: no cover
     '''exercise cell group rotate¦reflect code'''
     # mat = None
     mat = ROTATE90
@@ -495,7 +468,7 @@ def group_test(universe: AutomataUniverse):
     print("{} transforms to {}".format(in_cells, out_cells)) # DEBUG
     assert out_cells == ROTATED_CELLS
 
-def my_main():
+def my_main(): # pragma: no cover
     '''wrapper for test/start code so that variables do not look like constants'''
     # code to minimally exercise the class methods
     uni = AutomataUniverse(NEIGHBOURS_LIST, [2,3], [3])
@@ -504,10 +477,11 @@ def my_main():
     print("neighbourhood size", uni.neighbourhood_population)
     print("hash", hash(uni))
     print("(0,0) neighbours", uni.neighbours((0,0)))
+    print("identity", uni.identity_matrix)
     print()
     vector_test(uni)
     group_test(uni)
 
 # Standalone module execution
-if __name__ == "__main__":
+if __name__ == "__main__": # pragma: no cover
     my_main()
