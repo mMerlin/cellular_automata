@@ -6,13 +6,11 @@
 regression tests for creation of cellular automata universe instances
 '''
 
-# import unittest
 from typing import Iterable
 import re
 from _pytest._code.code import ExceptionInfo
 import pytest
 from automata_universe import AutomataUniverse
-from math_tools import matrix_transpose
 
 # remove need to add parent to path?
 # `pipenv run python -m pytest «»`
@@ -339,16 +337,6 @@ DOT_PRODUCT_2D_VECTOR_TESTS = (
     (UNIT_2D, SCALE_3X_5Y_MATRIX, (3,5)),
     (UNIT_2D, SCALE_3X_5Y_MATRIX, (3,5)),
     (ORIGIN_2D, SCALE_3X_5Y_MATRIX, ORIGIN_2D),
-)
-
-GOOD_MATRIX_TRANSPOSE = (
-    # («original», «transposed»),
-    (((3,5),(7,11)), ((3,7),(5,11))),
-    (((3,5),), ((3,),(5,))),
-    (((3,),(7,)), ((3,7),)),
-    (((3,),(7,),(11,)), ((3,7,11),)),
-    (((3,5,13),(7,11,17)), ((3,7),(5,11),(13,17))),
-    (((3,5),(7,11),(13,17)), ((3,7,13),(5,11,17))),
 )
 
 DOT_PRODUCT_2D_SQUARE_EXPECTED = (
@@ -914,13 +902,6 @@ def test_vector_dot_product() -> None:
     assert len(DOT_PRODUCT_2D_VECTOR_TESTS) > 0
     for (vector, matrix, expected) in DOT_PRODUCT_2D_VECTOR_TESTS:
         assert uni.vector_dot_product(vector, matrix) == expected
-def test_transpose_matrix() -> None:
-    '''verify mxn matrix transpose cases'''
-    # uni = base_2d_universe_instance()
-    assert len(GOOD_MATRIX_TRANSPOSE) > 0
-    for (matrix, expected) in GOOD_MATRIX_TRANSPOSE:
-        # assert uni._transpose_matrix(matrix) == expected
-        assert matrix_transpose(matrix) == expected
 def test_square_dot_product() -> None:
     '''verify square 2d dot product cases'''
     uni = base_2d_universe_instance()
