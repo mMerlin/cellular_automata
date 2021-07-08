@@ -29,7 +29,7 @@ def identity_matrix(dimensions: int) -> tuple[tuple[int, ...]]:
         raise TypeError("Identity Matrix dimensions must be an intger, not {}".format(
             type(dimensions)))
     if dimensions < 1:
-        raise ValueError("{} is not a invalid; Identity Matrix dimension "
+        raise ValueError("{} is not a valid Identity Matrix dimension "
             "must be greater than zero".format(dimensions))
     # matrix of all zeros that does NOT have linked rows
     identity = [list(row) for row in ((0,) * dimensions,) * dimensions]
@@ -47,7 +47,7 @@ def vector_dot_product(vector: tuple[Union[int, float], ...],
     :type matrix: tuple of «dimension» cell address coordinates
     :raises: TypeError
     '''
-    # This code does not work with one dimensional data
+    # This works with 1 dimensional data and up
     return tuple(sum(x * y for x, y in zip(row, vector)) for row in matrix)
     # return tuple([sum(x * y for x, y in zip(row, vector)) for row in matrix])
     # product = []

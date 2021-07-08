@@ -36,6 +36,8 @@ Exploration of concept code to handle multiple¦variable cellular automata dimen
 * [determinant index](https://www.euclideanspace.com/maths/algebra/matrix/functions/determinant/index.htm)
 * [determinant of a matrix](https://www.geeksforgeeks.org/determinant-of-a-matrix/) **
 
+* [inheriting from a namedtuple base class](https://stackoverflow.com/questions/42385916/inheriting-from-a-namedtuple-base-class)
+
 ## <a name="link_concepts">⚓</a> Concepts
 
 An automaton `cell` is in one of 2 states. Alive or dead. Its only property is its location. Its address in n-dimensional space.
