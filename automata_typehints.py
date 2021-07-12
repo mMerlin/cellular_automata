@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-'''typehint aliases for the Automata¦Automaton families of classes'''
+"""typehint aliases for the Automata¦Automaton families of classes"""
 
 # pipenv shell
 
@@ -28,7 +28,7 @@ TransformType = tuple[CellAddressType, ...]
 RotateReflectInputType = Iterable[TransformInputType]
 
 # def my_main() -> None:
-#     '''wrapper for test/start code so that variables do not look like constants'''
+#     """wrapper for test/start code so that variables do not look like constants"""
 
 # # Standalone module execution
 # if __name__ == "__main__":

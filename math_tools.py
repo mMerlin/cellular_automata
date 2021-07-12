@@ -2,9 +2,9 @@
 # coding=utf-8
 # pylint: disable=C0415
 
-'''
+"""
 some purely mathematical operations
-'''
+"""
 
 # standard library imports
 # start needed to use `kill -SIGUSR1 «pid»` to attach pdb to running session
@@ -17,14 +17,14 @@ from typing import Iterable, Hashable, Union
 # def local_function_definition(«arguments»…):
 # def local_function_definition(«[argument«: «type»»[, …]»):
 def identity_matrix(dimensions: int) -> tuple[tuple[int, ...]]:
-    '''identity matrix for the specified number of dimensions
+    """identity matrix for the specified number of dimensions
 
     :param dimensions:
     :type dimensions: int
     :returns: identity matrix for the specified number of dimensions
     :rtype: tuple containing dimension tuples of dimension integers
     :raises: TypeError, ValueError
-    '''
+    """
     if not isinstance(dimensions, int):
         raise TypeError("Identity Matrix dimensions must be an intger, not {}".format(
             type(dimensions)))
@@ -39,14 +39,14 @@ def identity_matrix(dimensions: int) -> tuple[tuple[int, ...]]:
 
 def vector_dot_product(vector: tuple[Union[int, float], ...],
         matrix: Iterable[Iterable[Union[int, float]]]) -> tuple[Union[int, float], ...]:
-    '''transform a vector through a transformation matrix
+    """transform a vector through a transformation matrix
 
     :param vector: cell address
     :type vector: tuple of integer coordinates for universe dimensions
     :param matrix: rotation matrix
     :type matrix: tuple of «dimension» cell address coordinates
     :raises: TypeError
-    '''
+    """
     # This works with 1 dimensional data and up
     return tuple(sum(x * y for x, y in zip(row, vector)) for row in matrix)
     # return tuple([sum(x * y for x, y in zip(row, vector)) for row in matrix])
@@ -58,32 +58,33 @@ def vector_dot_product(vector: tuple[Union[int, float], ...],
 
 def matrix_transpose(matrix: Iterable[Iterable[Hashable]]) \
         -> tuple[tuple[Hashable, ...]]:
-    '''transpose matrix (rotate 90°)
+    """transpose matrix (rotate 90°)
 
     :param matrix: matrix to transpose
     :type matrix: iterable of «count1» iterables of «count2» Immutable elements
     :returns: transposed (reversed x and y) matrix
     :rtype: tuple of «count2» tuples of «count1» Immutable elements
-    '''
-    return tuple(tuple(matrix[j][i] for j in range(len(matrix))) for i in range(len(matrix[0])))
+    """
+    return tuple([*zip(*matrix)])
 
-def matrix_transform(matrix: Iterable[Iterable[int]], transform: Iterable[Iterable[int]]) \
+def matrix_transform(operation: Iterable[Iterable[int]], matrix: Iterable[Iterable[int]]) \
         -> tuple[tuple[int, ...]]:
-    '''transform a matrix through a rotation or reflection matrix
+    """transform a matrix through a rotation or reflection matrix
 
     C[i,j] = A[i,*] · B[*,j]
 
-    :param matrix: «square?» matrix
+    :param operation: «square» matrix
+    :type operation: tuple of «dimension» cell address coordinates
+    :param matrix: square matrix
     :type matrix: tuple of «dimension» cell address coordinates
-    :param transform: square matrix
-    :type transform: tuple of «dimension» cell address coordinates
     :returns: matrix dot product
     :rtype: tuple of «dimension» cell address tuples
-    '''
-    return tuple(vector_dot_product(row, matrix_transpose(transform)) for row in matrix)
+    """
+    transpose = matrix_transpose(matrix)
+    return tuple(vector_dot_product(row, transpose) for row in operation)
 
 def matrix_determinant(matrix: Iterable[Iterable[int]]) -> Union[int, float]:
-    '''calculated the determinant of a square matrix
+    """calculated the determinant of a square matrix
 
     The reference code used does not look at all pythonic. Direct translation from C.
 
@@ -92,7 +93,7 @@ def matrix_determinant(matrix: Iterable[Iterable[int]]) -> Union[int, float]:
                 The inner iterables are all the same size
     :returns: determinant of the matrix
     :rtype: number
-    '''
+    """
     dim = len(matrix)
     mat = [list(row) for row in matrix] # make a fully indexable copy
     temp = [0] * dim # temporary array for storing row
@@ -124,20 +125,20 @@ def matrix_determinant(matrix: Iterable[Iterable[int]]) -> Union[int, float]:
     return int(det/total) # Det(kA)/k = Det(A)
 
 def matrix_determinant2(matrix: Iterable[Iterable[int]]) -> Union[int, float]:
-    '''calculated the determinant of a square matrix
+    """calculated the determinant of a square matrix
 
     :param matrix: the matrix
     :type matrix: any iterable containing iterables of numbers.
                 The inner iterables are all the same size
     :returns: determinant of the matrix
     :rtype: number
-    '''
+    """
     mat = [list(row) for row in matrix] # make a fully indexable copy
     return _recursive_matrix_determinant(mat, 1)
 
 def _recursive_matrix_determinant(matrix: list[list[Union[int, float]]],
         mul: Union[int, float] = 1) -> Union[int, float]:
-    '''recursive calculation of matrix determinant using minors and cofactors
+    """recursive calculation of matrix determinant using minors and cofactors
 
     :param matrix: the matrix
     :type matrix: any iterable containing iterables of numbers.
@@ -146,7 +147,7 @@ def _recursive_matrix_determinant(matrix: list[list[Union[int, float]]],
     :type mul: number
     :returns: determinant of the matrix
     :rtype: number
-    '''
+    """
     width = len(matrix)
     if width == 1:
         return mul * matrix[0][0]
@@ -167,11 +168,11 @@ def _recursive_matrix_determinant(matrix: list[list[Union[int, float]]],
 
 
 def my_main(): # pragma: no cover
-    '''wrapper for test/start code so that variables do not look like constants'''
+    """wrapper for test/start code so that variables do not look like constants"""
     dummy_start = identity_matrix(4)
 
 def start_pdb(_sig, frame):  # DEBUG # pragma: no cover
-    '''handler to start pdb session on interrupt'''
+    """handler to start pdb session on interrupt"""
     import pdb
     pdb.Pdb().set_trace(frame)
 

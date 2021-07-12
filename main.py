@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-'''
+"""
 shell to work with automaton class
-'''
+"""
 
 # pipenv shell
 
@@ -27,7 +27,7 @@ from automaton import Automaton
 # setup functions to add patterns of cell to and automaton universe generation
 
 def report_generation(instance: Automaton) -> None:
-    '''show information about an Automaton generation'''
+    """show information about an Automaton generation"""
     # print(amn.generation)
     # for cell in amn.generation:
     #     print(cell)
@@ -38,15 +38,15 @@ def report_generation(instance: Automaton) -> None:
 
 def offset_cells(cells: list[tuple[int,int]], offset_x: int = 0, offset_y: int = 0) -> \
         list[tuple[int,int]]:
-    '''add x and/or y offsets to cell coordinate tuples in a list'''
+    """add x and/or y offsets to cell coordinate tuples in a list"""
     return [tuple(x + y for x, y in zip(c, (offset_x, offset_y))) for c in cells]
 
 def _one_cell(instance: Automaton, offset_x: int = 0, offset_y: int = 0) -> None:
-    '''add single living cell to existing universe'''
+    """add single living cell to existing universe"""
     instance.merge_cells((0 + offset_x, 0 + offset_y))
 
 def _two_cell_h_pair(instance: Automaton, offset_x: int = 0, offset_y: int = 0) -> None:
-    '''add 2 horizontal adjacent cells to existing universe'''
+    """add 2 horizontal adjacent cells to existing universe"""
     template = [(0, 0), (1, 0)]
     # instance.merge_cells((0 + offset_x, 0 + offset_y))
     # instance.merge_cells((1 + offset_x, 0 + offset_y))
@@ -54,18 +54,18 @@ def _two_cell_h_pair(instance: Automaton, offset_x: int = 0, offset_y: int = 0) 
     instance.merge_cells(offset_cells(template, offset_x, offset_y))
 
 def _two_cell_v_pair(instance: Automaton, offset_x: int = 0, offset_y: int = 0) -> None:
-    '''add 2 vertical adjacent cells to existing universe'''
+    """add 2 vertical adjacent cells to existing universe"""
     template = [(0, 0), (0, 1)]
     instance.merge_cells(offset_cells(template, offset_x, offset_y))
 
 def _three_cell_row(instance: Automaton, offset_x: int = 0, offset_y: int = 0) -> None:
-    '''add 3 horizontal adjacent cells to existing universe'''
+    """add 3 horizontal adjacent cells to existing universe"""
     # spinner
     template = [(0, 0), (1, 0), (2, 0)]
     instance.merge_cells(offset_cells(template, offset_x, offset_y))
 
 def _three_cell_diagonal(instance: Automaton, offset_x: int = 0, offset_y: int = 0) -> None:
-    '''add 3 horizontal adjacent cells to existing universe'''
+    """add 3 horizontal adjacent cells to existing universe"""
     # spinner
     template = [(0, 0), (1, 1), (2, 2)]
     instance.merge_cells(offset_cells(template, offset_x, offset_y))
@@ -82,7 +82,7 @@ NEIGHBOURS = [
 ]
 
 def my_main() -> None:
-    '''wrapper for test/start code so that variables do not look like constants'''
+    """wrapper for test/start code so that variables do not look like constants"""
     # old instantiation test lines
         # amn = Automaton(None)
         # amn = Automaton(1)

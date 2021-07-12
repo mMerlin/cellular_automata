@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-'''
+"""
 verify typehints match expected objects
 
 no method found to directly check object instances against non-trivial typehints.
@@ -10,7 +10,7 @@ isinstance(«object», «typehint») fails with
 Some tools exist to parse typehint details, but that then relies on the parsing
 code interpretation.
 IE: is tuple() a valid match for tuple[int, ...]?
-'''
+"""
 
 # import unittest
 # import pytest

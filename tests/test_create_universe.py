@@ -2,9 +2,9 @@
 # coding=utf-8
 # pylint: disable=E1120,E1121,W0212,C0302
 
-'''
+"""
 regression tests for creation of cellular automata universe instances
-'''
+"""
 
 from typing import Iterable
 import re
@@ -19,6 +19,7 @@ from common_test_data import (
     IDENTITY_MATRIX_3D,
     NOT_INTEGER_TYPE_SAMPLES,
     ORIGIN_2D,
+    TRANPOSE_MATRIX_2D,
     UNIT_VECTOR_2D,
 
     ZERO_MATRIX_2D,
@@ -241,6 +242,11 @@ DOT_PRODUCT_2D_VECTOR_TESTS = (
     (UNIT_VECTOR_2D, SCALE_3X_5Y_MATRIX, (3,5)),
     (UNIT_VECTOR_2D, SCALE_3X_5Y_MATRIX, (3,5)),
     (ORIGIN_2D, SCALE_3X_5Y_MATRIX, ORIGIN_2D),
+    (Q1_11_7, TRANPOSE_MATRIX_2D, (7,11)),
+    (Q1_11_7, TRANPOSE_MATRIX_2D, (Q1_11_7[1], Q1_11_7[0])),
+    (Q2_11_7, TRANPOSE_MATRIX_2D, (Q2_11_7[1], Q2_11_7[0])),
+    (Q3_11_7, TRANPOSE_MATRIX_2D, (Q3_11_7[1], Q3_11_7[0])),
+    (Q4_11_7, TRANPOSE_MATRIX_2D, (Q4_11_7[1], Q4_11_7[0])),
 )
 
 DOT_PRODUCT_2D_SQUARE_EXPECTED = (
@@ -331,7 +337,7 @@ BAD_EXTRA_ARGUMENTS = (
 )
 
 def verify_general_exception_tuple(ex: ExceptionInfo, length: int) -> None:
-    '''check the structure of a custom exception'''
+    """check the structure of a custom exception"""
     assert isinstance(ex, ExceptionInfo)
     assert isinstance(ex.type, type)
     # assert isinstance(excinfo.type, ValueError)
@@ -343,7 +349,7 @@ def verify_general_exception_tuple(ex: ExceptionInfo, length: int) -> None:
     assert isinstance(ex.value.args[0], tuple)
     assert len(ex.value.args[0]) == length
 def plural_suffix(count: int) -> str:
-    '''"s" when count is not one'''
+    """"s" when count is not one"""
     suffix = ''
     if count != 1:
         suffix = 's'
@@ -352,13 +358,13 @@ def required_positional_message(missing: int) -> str:
     return re.compile("__init__[(][)] missing {} required positional argument{}: .*".format(
         missing, plural_suffix(missing)))
 def base_universe_instance_1d() -> AutomataUniverse:
-    '''create and return 1 dimensional universe instance
+    """create and return 1 dimensional universe instance
 
     Use when further steps do not need the parameters used to create the universe instance
 
     :returns: standard 1 dimensional automata universe
     :rtype: AutomataUniverse
-    '''
+    """
     test_neighbourhood = NEIGHBOURHOOD_1D
     test_survival = GOOD_1D_SURVIVAL_COUNTS[0]
     test_birth = GOOD_1D_BIRTH_COUNTS[0]
@@ -366,13 +372,13 @@ def base_universe_instance_1d() -> AutomataUniverse:
     assert universe.dimensions == 1
     return universe
 def base_universe_instance_2d() -> AutomataUniverse:
-    '''create and return 2 dimensional universe instance
+    """create and return 2 dimensional universe instance
 
     Use when further steps do not need the parameters used to create the universe instance
 
     :returns: standard 2 dimensional rectangular grid automata universe
     :rtype: AutomataUniverse
-    '''
+    """
     test_neighbourhood = NEIGHBOURHOOD_2D
     test_survival = frozenset((2,3))
     test_birth = frozenset((3,))
@@ -380,13 +386,13 @@ def base_universe_instance_2d() -> AutomataUniverse:
     assert universe.dimensions == 2
     return universe
 def base_universe_instance_3d() -> AutomataUniverse:
-    '''create and return 3 dimensional universe instance
+    """create and return 3 dimensional universe instance
 
     Use when further steps do not need the parameters used to create the universe instance
 
     :returns: standard 3 dimensional cube grid automata universe
     :rtype: AutomataUniverse
-    '''
+    """
     test_neighbourhood = NEIGHBOURHOOD_3D
     test_survival = GOOD_2D_SURVIVAL_COUNTS[2] # good enough for base universe
     test_birth = GOOD_2D_BIRTH_COUNTS[2]
@@ -395,11 +401,11 @@ def base_universe_instance_3d() -> AutomataUniverse:
     return universe
 
 def test_no_arguments() -> None:
-    '''no arguments supplied when 3 expected'''
+    """no arguments supplied when 3 expected"""
     with pytest.raises(TypeError, match=required_positional_message(3)):
         AutomataUniverse()
 def test_1_argument() -> None:
-    '''only one argument supplied when 3 expected'''
+    """only one argument supplied when 3 expected"""
     bad_neighbourhoods = [
         *BAD_TYPE_NOT_ITERABLE,
         *BAD_NEIGHBOURHOOD_TOO_FEW]
@@ -413,7 +419,7 @@ def test_1_argument() -> None:
         with pytest.raises(TypeError, match=required_positional_message(2)):
             AutomataUniverse(neighbourhood)
 def test_2_arguments() -> None:
-    '''two arguments supplied when 3 expected'''
+    """two arguments supplied when 3 expected"""
     assert len(BAD_TYPE_NOT_ITERABLE) > 0
     assert len(BAD_COUNT_RULES_NOT_UNIQUE) > 0
     assert len(BAD_COUNT_OUTSIDE_RANGE) > 0
@@ -434,21 +440,21 @@ def test_2_arguments() -> None:
         with pytest.raises(TypeError, match=required_positional_message(1)):
             AutomataUniverse(NEIGHBOURHOOD_2D, survival)
 def test_4_arguments() -> None:
-    '''four arguments supplied when 3 expected'''
+    """four arguments supplied when 3 expected"""
     for extra in BAD_EXTRA_ARGUMENTS:
         with pytest.raises(TypeError, match=re.compile(
             "__init__[(][)] takes 4 positional arguments but {} were given".format(
                 len(extra) + 4))):
             AutomataUniverse(NEIGHBOURHOOD_2D, [2,3], [3], *extra)
 def test_non_iterable_neighbourhood() -> None:
-    '''neighbourhood parameter is not iterable'''
+    """neighbourhood parameter is not iterable"""
     assert len(BAD_TYPE_NOT_ITERABLE) > 0
     for neighbourhood in BAD_TYPE_NOT_ITERABLE:
         expected = "'{}' object is not iterable".format(type(neighbourhood).__name__)
         with pytest.raises(TypeError, match=re.compile(expected)):
             AutomataUniverse(neighbourhood, GOOD_2D_SURVIVAL_COUNTS[0], GOOD_2D_BIRTH_COUNTS[0])
 def test_too_few_neighbours() -> None:
-    '''neighbourhood parameter is iterable but too short'''
+    """neighbourhood parameter is iterable but too short"""
     assert len(BAD_NEIGHBOURHOOD_TOO_FEW) > 0
     for neighbourhood in BAD_NEIGHBOURHOOD_TOO_FEW:
         assert isinstance(neighbourhood, Iterable)
@@ -458,7 +464,7 @@ def test_too_few_neighbours() -> None:
         assert excinfo.value.args[0] == (len(neighbourhood),
             "neighbourhood does not contain enough neighbours: at least 2 required")
 def test_neighbours_not_unique() -> None:
-    '''iterable neighbourhood contains duplicate elements'''
+    """iterable neighbourhood contains duplicate elements"""
     assert len(BAD_NEIGHBOURHOOD_NOT_UNIQUE) > 0
     for neighbourhood in BAD_NEIGHBOURHOOD_NOT_UNIQUE:
         assert isinstance(neighbourhood, Iterable)
@@ -469,7 +475,7 @@ def test_neighbours_not_unique() -> None:
         assert excinfo.value.args[0][1] < len(neighbourhood)
         assert excinfo.value.args[0][2] == "Neighbourhood addresses are not unique"
 def test_neighbour_element_not_tuple() -> None:
-    '''iterable neighbourhood contains non-tuple element'''
+    """iterable neighbourhood contains non-tuple element"""
     assert len(BAD_NEIGHBOURHOOD_ELE_NOT_TUPLE) > 0
     for (neighbourhood, err_type) in BAD_NEIGHBOURHOOD_ELE_NOT_TUPLE:
         assert isinstance(neighbourhood, Iterable)
@@ -478,19 +484,19 @@ def test_neighbour_element_not_tuple() -> None:
         verify_general_exception_tuple(excinfo, 2)
         assert excinfo.value.args[0] == (err_type, "element of neighbourhood is not a tuple")
 def do_addr_test(nei, err_type) -> None:
-    '''see if can get report showing neighbourhood set'''
+    """see if can get report showing neighbourhood set"""
     assert isinstance(nei, Iterable)
     with pytest.raises(TypeError) as excinfo:
         AutomataUniverse(nei, GOOD_2D_SURVIVAL_COUNTS[0], GOOD_2D_BIRTH_COUNTS[0])
     verify_general_exception_tuple(excinfo, 2)
     assert excinfo.value.args[0] == (err_type, "automata universe address is not a tuple")
 def test_neighbour_address_not_tuple() -> None:
-    '''iterable neighbourhood contains non-tuple address'''
+    """iterable neighbourhood contains non-tuple address"""
     assert len(BAD_NEIGHBOURHOOD_ADDR_NOT_TUPLE) > 0
     for (neighbourhood, err_type) in BAD_NEIGHBOURHOOD_ADDR_NOT_TUPLE:
         do_addr_test(neighbourhood, err_type)
 def test_bad_neighbour_dimensions() -> None:
-    '''iterable neighbourhood address element different dimensions'''
+    """iterable neighbourhood address element different dimensions"""
     assert len(BAD_NEIGHBOURHOOD_DIMENSIONS) > 0
     for (neighbourhood, dimensions_uni, dimensions_addr) in BAD_NEIGHBOURHOOD_DIMENSIONS:
         assert isinstance(neighbourhood, Iterable)
@@ -500,7 +506,7 @@ def test_bad_neighbour_dimensions() -> None:
         assert excinfo.value.args[0] == (dimensions_uni, dimensions_addr, "automata universe"
             " address does not have the same number of dimensions as the universe")
 def test_coordinate_not_integer() -> None:
-    '''iterable neighbourhood contains non-integer coordinate'''
+    """iterable neighbourhood contains non-integer coordinate"""
     assert len(BAD_NEIGHBOURHOOD_COORDINATE) > 0
     for (neighbourhood, err_type) in BAD_NEIGHBOURHOOD_COORDINATE:
         assert isinstance(neighbourhood, Iterable)
@@ -510,7 +516,7 @@ def test_coordinate_not_integer() -> None:
         assert excinfo.value.args[0] == (err_type,
             "automata universe address coordinate is not an integer")
 def test_origin_in_neighbourhood() -> None:
-    '''iterable neighbourhood contains universe origin'''
+    """iterable neighbourhood contains universe origin"""
     assert len(BAD_NEIGHBOURHOOD_WITH_ORIGIN) > 0
     for neighbourhood in BAD_NEIGHBOURHOOD_WITH_ORIGIN:
         assert isinstance(neighbourhood, Iterable)
@@ -520,7 +526,7 @@ def test_origin_in_neighbourhood() -> None:
         assert excinfo.value.args[0] == (tuple([0]*len(neighbourhood[0])),
             "the universe origin is not a valid neighbourhood address")
 def test_no_symmetric_address() -> None:
-    '''iterable neighbourhood missing symmetric address'''
+    """iterable neighbourhood missing symmetric address"""
     assert len(BAD_NEIGHBOURHOOD_WITHOUT_SYMMETRIC) > 0
     for (neighbourhood, address) in BAD_NEIGHBOURHOOD_WITHOUT_SYMMETRIC:
         assert isinstance(neighbourhood, Iterable)
@@ -529,7 +535,7 @@ def test_no_symmetric_address() -> None:
         verify_general_exception_tuple(excinfo, 2)
         assert excinfo.value.args[0] == (address, "no symmetric address in neighbourhood")
 def test_no_coordinate() -> None:
-    '''iterable neighbourhood first address without coordinate'''
+    """iterable neighbourhood first address without coordinate"""
     assert len(BAD_NEIGHBOURHOOD_NO_COORDINATE) > 0
     for neighbourhood in BAD_NEIGHBOURHOOD_NO_COORDINATE:
         assert isinstance(neighbourhood, Iterable)
@@ -538,21 +544,21 @@ def test_no_coordinate() -> None:
             AutomataUniverse(neighbourhood, GOOD_2D_SURVIVAL_COUNTS[0], GOOD_2D_BIRTH_COUNTS[0])
 
 def test_not_iterable_survial() -> None:
-    '''survival rule parameter is not iterable'''
+    """survival rule parameter is not iterable"""
     assert len(BAD_TYPE_NOT_ITERABLE) > 0
     for rule in BAD_TYPE_NOT_ITERABLE:
         expected = "'{}' object is not iterable".format(type(rule).__name__)
         with pytest.raises(TypeError, match=re.compile(expected)):
             AutomataUniverse(NEIGHBOURHOOD_2D, rule, GOOD_2D_BIRTH_COUNTS[0])
 def test_not_iterable_birth() -> None:
-    '''birth rule parameter is not iterable'''
+    """birth rule parameter is not iterable"""
     assert len(BAD_TYPE_NOT_ITERABLE) > 0
     for rule in BAD_TYPE_NOT_ITERABLE:
         expected = "'{}' object is not iterable".format(type(rule).__name__)
         with pytest.raises(TypeError, match=re.compile(expected)):
             AutomataUniverse(NEIGHBOURHOOD_2D, GOOD_2D_SURVIVAL_COUNTS[0], rule)
 def test_not_unique_survial() -> None:
-    '''survival rule parameter contains duplicate entry'''
+    """survival rule parameter contains duplicate entry"""
     assert len(BAD_COUNT_RULES_NOT_UNIQUE) > 0
     for rule in BAD_COUNT_RULES_NOT_UNIQUE:
         assert isinstance(rule, Iterable)
@@ -563,7 +569,7 @@ def test_not_unique_survial() -> None:
         assert excinfo.value.args[0][1] < len(rule)
         assert excinfo.value.args[0][2] == "cell propagation rule counts are not unique"
 def test_not_unique_birth() -> None:
-    '''birth rule parameter contains duplicate entry'''
+    """birth rule parameter contains duplicate entry"""
     assert len(BAD_COUNT_RULES_NOT_UNIQUE) > 0
     for rule in BAD_COUNT_RULES_NOT_UNIQUE:
         assert isinstance(rule, Iterable)
@@ -574,7 +580,7 @@ def test_not_unique_birth() -> None:
         assert excinfo.value.args[0][1] < len(rule)
         assert excinfo.value.args[0][2] == "cell propagation rule counts are not unique"
 def test_survival_outside_neighbourhood() -> None:
-    '''survival rule parameter entry outside neighbourhood size'''
+    """survival rule parameter entry outside neighbourhood size"""
     assert len(BAD_COUNT_OUTSIDE_RANGE) > 0
     for (rule, outside) in BAD_COUNT_OUTSIDE_RANGE:
         assert isinstance(rule, Iterable)
@@ -587,7 +593,7 @@ def test_survival_outside_neighbourhood() -> None:
         assert excinfo.value.args[0][2] == \
             "cell propagation count case is not between 0 and neighbourhood size"
 def test_birth_outside_neighbourhood() -> None:
-    '''birth rule parameter entry outside neighbourhood size'''
+    """birth rule parameter entry outside neighbourhood size"""
     assert len(BAD_COUNT_OUTSIDE_RANGE) > 0
     for (rule, outside) in BAD_COUNT_OUTSIDE_RANGE:
         assert isinstance(rule, Iterable)
@@ -600,7 +606,7 @@ def test_birth_outside_neighbourhood() -> None:
         assert excinfo.value.args[0][2] == \
             "cell propagation count case is not between 0 and neighbourhood size"
 def test_survival_not_integer() -> None:
-    '''survival rule parameter entry not an integer'''
+    """survival rule parameter entry not an integer"""
     assert len(BAD_COUNT_NOT_INTEGER) > 0
     for (rule, err_type) in BAD_COUNT_NOT_INTEGER:
         assert isinstance(rule, Iterable)
@@ -610,7 +616,7 @@ def test_survival_not_integer() -> None:
         assert excinfo.value.args[0] == (err_type,
             "cell propagation count case is not an integer")
 def test_birth_not_integer() -> None:
-    '''birth rule parameter entry not an integer'''
+    """birth rule parameter entry not an integer"""
     assert len(BAD_COUNT_NOT_INTEGER) > 0
     for (rule, err_type) in BAD_COUNT_NOT_INTEGER:
         assert isinstance(rule, Iterable)
@@ -620,7 +626,7 @@ def test_birth_not_integer() -> None:
         assert excinfo.value.args[0] == (err_type,
             "cell propagation count case is not an integer")
 def test_zero_birth_rule() -> None:
-    '''birth rule contains entry for zero neighbours'''
+    """birth rule contains entry for zero neighbours"""
     assert len(BAD_BIRTH_COUNTS) > 0
     for rule in BAD_BIRTH_COUNTS:
         assert isinstance(rule, Iterable)
@@ -629,7 +635,7 @@ def test_zero_birth_rule() -> None:
             AutomataUniverse(NEIGHBOURHOOD_2D, GOOD_2D_SURVIVAL_COUNTS[0], rule)
 
 def test_properties() -> None:
-    '''verify the properties of a successful instance creation'''
+    """verify the properties of a successful instance creation"""
     test_neighbourhood = NEIGHBOURHOOD_2D
     test_survival = GOOD_2D_SURVIVAL_COUNTS[0]
     test_birth = GOOD_2D_BIRTH_COUNTS[0]
@@ -649,7 +655,7 @@ def test_properties() -> None:
     assert isinstance(hash(uni), int)
     assert hasattr(uni, "__hash__")
 def test_identity() -> None:
-    '''verify identity matrix for different universe dimensions'''
+    """verify identity matrix for different universe dimensions"""
     uni = base_universe_instance_1d()
     assert uni.identity_matrix == IDENTITY_MATRIX_1D
     uni = base_universe_instance_2d()
@@ -658,7 +664,7 @@ def test_identity() -> None:
     assert uni.identity_matrix == IDENTITY_MATRIX_3D
 
 def test_validate_address_not_tuple() -> None:
-    '''address parameter is not a tuple'''
+    """address parameter is not a tuple"""
     uni = base_universe_instance_2d()
     assert len(BAD_ADDRESS_NOT_TUPLE) > 0
     for (address, err_type) in BAD_ADDRESS_NOT_TUPLE:
@@ -667,7 +673,7 @@ def test_validate_address_not_tuple() -> None:
         verify_general_exception_tuple(excinfo, 2)
         assert excinfo.value.args[0] == (err_type, "automata universe address is not a tuple")
 def test_validate_address_bad_dimensions() -> None:
-    '''address parameter coordinates do not match universe dimensions'''
+    """address parameter coordinates do not match universe dimensions"""
     uni = base_universe_instance_2d()
     assert len(BAD_ADDRESS_NOT_2_DIMENSIONS) > 0
     for (address, dim) in BAD_ADDRESS_NOT_2_DIMENSIONS:
@@ -677,7 +683,7 @@ def test_validate_address_bad_dimensions() -> None:
         assert excinfo.value.args[0] == (uni.dimensions, dim, "automata universe address "
             "does not have the same number of dimensions as the universe")
 def test_validate_address_not_integer() -> None:
-    '''coordinate in address parameter is not an integer'''
+    """coordinate in address parameter is not an integer"""
     uni = base_universe_instance_2d()
     assert len(BAD_ADDRESS_COORD_NOT_INTEGER) > 0
     for (address, err_type) in BAD_ADDRESS_COORD_NOT_INTEGER:
@@ -687,14 +693,14 @@ def test_validate_address_not_integer() -> None:
         assert excinfo.value.args[0] == (err_type,
             "automata universe address coordinate is not an integer")
 def test_validate_good_address() -> None:
-    '''good 2D address'''
+    """good 2D address"""
     uni = base_universe_instance_2d()
     assert len(GOOD_2D_ADDRESS) > 0
     for address in GOOD_2D_ADDRESS:
         uni.validate_address(address)
 
 def test_universe_address_false() -> None:
-    '''parameter is not a valid (2D) universe address'''
+    """parameter is not a valid (2D) universe address"""
     uni = base_universe_instance_2d()
     bad_address = [case for (case, _err) in BAD_ADDRESS_NOT_TUPLE]
     for (case, _err) in BAD_ADDRESS_NOT_2_DIMENSIONS:
@@ -705,14 +711,14 @@ def test_universe_address_false() -> None:
     for address in bad_address:
         assert uni.is_universe_address(address) is False
 def test_universe_address_true() -> None:
-    '''parameter is a valid (2D) universe address'''
+    """parameter is a valid (2D) universe address"""
     uni = base_universe_instance_2d()
     assert len(GOOD_2D_ADDRESS) > 0
     for address in GOOD_2D_ADDRESS:
         assert uni.is_universe_address(address) is True
 
 def test_neighbours_bad_address() -> None:
-    '''cell address is not valid for universe'''
+    """cell address is not valid for universe"""
     uni = base_universe_instance_2d()
     bad_addresses = [address for (address, _error_details) in BAD_ADDRESS_NOT_TUPLE]
     bad_addresses.extend([address for (address, _error_details) in BAD_ADDRESS_COORD_NOT_INTEGER])
@@ -726,14 +732,14 @@ def test_neighbours_bad_address() -> None:
         with pytest.raises(ValueError):
             uni.neighbours(address)
 def test_neighbours_result() -> None:
-    '''verify result with good cell address tuple'''
+    """verify result with good cell address tuple"""
     uni = base_universe_instance_2d()
     assert len(GOOD_CELL_ADDRESS_NEIGHBOURS) > 0
     for (address, neighbours) in GOOD_CELL_ADDRESS_NEIGHBOURS:
         assert uni.neighbours(address) == neighbours
 
 def test_validate_matrix_not_iterable() -> None:
-    '''matrix parameter is not iterable'''
+    """matrix parameter is not iterable"""
     uni = base_universe_instance_2d()
     assert len(BAD_TYPE_NOT_ITERABLE) > 0
     for matrix in BAD_TYPE_NOT_ITERABLE:
@@ -741,7 +747,7 @@ def test_validate_matrix_not_iterable() -> None:
         with pytest.raises(TypeError, match=re.compile(expected)):
             uni.validate_matrix(matrix)
 def test_validate_matrix_not_tuple() -> None:
-    '''matrix parameter contains address that is not a tuple'''
+    """matrix parameter contains address that is not a tuple"""
     uni = base_universe_instance_2d()
     assert len(BAD_NEIGHBOURHOOD_ELE_NOT_TUPLE) > 0
     for (matrix, err_type) in BAD_NEIGHBOURHOOD_ELE_NOT_TUPLE:
@@ -751,7 +757,7 @@ def test_validate_matrix_not_tuple() -> None:
         verify_general_exception_tuple(excinfo, 2)
         assert excinfo.value.args[0] == (err_type, "automata universe address is not a tuple")
 def test_validate_matrix_bad_vector_dimensions() -> None:
-    '''matrix contains address with dimensions different from universe'''
+    """matrix contains address with dimensions different from universe"""
     uni = base_universe_instance_2d()
     assert len(BAD_NEIGHBOURHOOD_DIMENSIONS) > 0
     for (matrix, u_dim, a_dim) in BAD_NEIGHBOURHOOD_DIMENSIONS:
@@ -763,7 +769,7 @@ def test_validate_matrix_bad_vector_dimensions() -> None:
         assert excinfo.value.args[0] == (uni.dimensions, a_dim, "automata universe address "
             "does not have the same number of dimensions as the universe")
 def test_validate_matrix_not_integer() -> None:
-    '''matrix contains address with non-integer coordinate'''
+    """matrix contains address with non-integer coordinate"""
     uni = base_universe_instance_2d()
     assert len(BAD_NEIGHBOURHOOD_COORDINATE) > 0
     for (matrix, err_type) in BAD_NEIGHBOURHOOD_COORDINATE:
@@ -774,7 +780,7 @@ def test_validate_matrix_not_integer() -> None:
         assert excinfo.value.args[0] == (err_type,
             "automata universe address coordinate is not an integer")
 def test_validate_matrix_bad_matrix_dimensions() -> None:
-    '''matrix contains number of vectors different from universe dimensions'''
+    """matrix contains number of vectors different from universe dimensions"""
     uni = base_universe_instance_2d()
     assert len(BAD_2D_MATRIX_VECTOR_COUNT) > 0
     for matrix in BAD_2D_MATRIX_VECTOR_COUNT:
@@ -783,27 +789,27 @@ def test_validate_matrix_bad_matrix_dimensions() -> None:
         with pytest.raises(TypeError, match=re.compile(expected)):
             uni.validate_matrix(matrix)
 def test_validate_matrix_good_data() -> None:
-    '''matrix is valid for the current (2D) universe'''
+    """matrix is valid for the current (2D) universe"""
     uni = base_universe_instance_2d()
     assert len(GOOD_2D_MATRIX) > 0
     for matrix in GOOD_2D_MATRIX:
         uni.validate_matrix(matrix)
 
 def test_vector_dot_product() -> None:
-    '''verify 2d dot product vector cases'''
+    """verify 2d dot product vector cases"""
     uni = base_universe_instance_2d()
     assert len(DOT_PRODUCT_2D_VECTOR_TESTS) > 0
     for (vector, matrix, expected) in DOT_PRODUCT_2D_VECTOR_TESTS:
         assert uni.vector_dot_product(vector, matrix) == expected
 def test_square_dot_product() -> None:
-    '''verify square 2d dot product cases'''
+    """verify square 2d dot product cases"""
     uni = base_universe_instance_2d()
     assert len(DOT_PRODUCT_2D_SQUARE_EXPECTED) > 0
-    for (matrix, transform, expected) in DOT_PRODUCT_2D_SQUARE_EXPECTED:
-        assert uni.matrix_transform(matrix, transform) == expected
+    for (transform, base, expected) in DOT_PRODUCT_2D_SQUARE_EXPECTED:
+        assert uni.matrix_transform(transform, base) == expected
 
 def test_check_cell_group_not_set() -> None:
-    '''verify exception raised if cell group is not the expected datatype'''
+    """verify exception raised if cell group is not the expected datatype"""
     uni = base_universe_instance_2d()
     assert len(BAD_POPULATION_NOT_SET) > 0
     for (cells, err_type) in BAD_POPULATION_NOT_SET:
@@ -816,7 +822,7 @@ def test_check_cell_group_not_set() -> None:
     verify_general_exception_tuple(excinfo, 2)
     assert excinfo.value.args[0] == (type(uni), "automata cell group is not a set")
 def test_check_cell_group_not_tuple() -> None:
-    '''verify exception raised if cell in group is not a tuple'''
+    """verify exception raised if cell in group is not a tuple"""
     uni = base_universe_instance_2d()
     bad_populations = (
         *(((case,)) for (case, _err_details) in BAD_ADDRESS_NOT_TUPLE),
@@ -830,14 +836,14 @@ def test_check_cell_group_not_tuple() -> None:
         with pytest.raises(TypeError):
             uni._check_cell_group(cells)
 def test_check_cell_group_good() -> None:
-    '''verify success with good cell group'''
+    """verify success with good cell group"""
     uni = base_universe_instance_2d()
     assert len(GOOD_2D_POPULATION) > 0
     for cells in GOOD_2D_POPULATION:
         assert uni._check_cell_group(cells) is None
 
 def test_group_translate_bad_arguments() -> None:
-    '''verify exception raised if cell group or vector is not valid for universe'''
+    """verify exception raised if cell group or vector is not valid for universe"""
     uni = base_universe_instance_2d()
     bad_populations = (
         *(((case,)) for (case, _err_details) in BAD_ADDRESS_NOT_TUPLE),
@@ -864,7 +870,7 @@ def test_group_translate_bad_arguments() -> None:
         with pytest.raises(ValueError):
             uni.cell_group_translate(good_matrix, vector)
 def test_group_translate_result() -> None:
-    '''verify result with good matrix and offset vector'''
+    """verify result with good matrix and offset vector"""
     uni = base_universe_instance_2d()
     assert len(GOOD_CELL_GROUP_TRANSLATE) > 0
     # assert len(GOOD_CELL_GROUP_TRANSLATE) == 4 * 1 + 2
@@ -872,7 +878,7 @@ def test_group_translate_result() -> None:
         assert uni.cell_group_translate(cells, offset) == result
 
 def test_group_transform_bad_arguments() -> None:
-    '''verify exception raised if cell group or matrix is not valid for universe'''
+    """verify exception raised if cell group or matrix is not valid for universe"""
     uni = base_universe_instance_2d()
     bad_transform = (
         *(case for case in BAD_TYPE_NOT_ITERABLE),
@@ -903,7 +909,7 @@ def test_group_transform_bad_arguments() -> None:
         with pytest.raises(TypeError):
             uni.cell_group_transform(cells, IDENTITY_MATRIX_2D)
 def test_group_transform_result() -> None:
-    '''verify result with good cell data and transformation matrix'''
+    """verify result with good cell data and transformation matrix"""
     uni = base_universe_instance_2d()
     assert len(GOOD_CELL_GROUP_TRANSFORM) > 0
     # assert len(GOOD_CELL_GROUP_TRANSFORM) == 4 * 1 + ?
@@ -911,7 +917,7 @@ def test_group_transform_result() -> None:
         assert uni.cell_group_transform(cells, matrix) == result
 
 def test_rotate_matrix_non_iterable_matrix() -> None:
-    '''matrix test parameter is not iterable'''
+    """matrix test parameter is not iterable"""
     uni = base_universe_instance_2d()
     assert len(BAD_TYPE_NOT_ITERABLE) > 0
     for matrix in BAD_TYPE_NOT_ITERABLE:
@@ -921,7 +927,7 @@ def test_rotate_matrix_non_iterable_matrix() -> None:
 # wrong dimensions for universe «validate_address»
 # not square ?? «validate_matrix» ((1,2),)
 def test_is_rotation_matrix_truth() -> None:
-    '''verify result with good matrix values'''
+    """verify result with good matrix values"""
     uni = base_universe_instance_2d()
     for case in NOT_ROTATION_MATRIX:
         assert uni.is_rotation_matrix(case) is False
@@ -929,23 +935,20 @@ def test_is_rotation_matrix_truth() -> None:
         assert uni.is_rotation_matrix(case) is True
 
 def test_step_result() -> None:
-    '''verify result with good cells'''
+    """verify result with good cells"""
     uni = base_universe_instance_2d()
     for (cells, expected) in GOOD_STEP_POPULATIONS:
         assert uni.step(cells) == expected
 
 # def test_exploration() -> None:
-#     '''view exact failure for test case'''
-#     # AutomataUniverse(NEIGHBOURHOOD_2D, ((-1,)), GOOD_BIRTH_COUNTS[0])
-#     # AutomataUniverse(NEIGHBOURHOOD_2D, BAD_[0], GOOD_BIRTH_COUNTS[0])
-#     # AutomataUniverse(NEIGHBOURHOOD_2D, GOOD_SURVIVAL_COUNTS[0], BAD_COUNT_RULES_NOT_UNIQUE[0])
-#     uni = base_2d_universe_instance()
-#     test_mat = (
-#         (1,2,0),(2,2.-1),(3,1,-2)
-#     )
-#     assert uni.is_rotation_matrix(test_mat) is True
+    # """view exact failure for test case"""
+    # # AutomataUniverse(NEIGHBOURHOOD_2D, ((-1,)), GOOD_BIRTH_COUNTS[0])
+    # # AutomataUniverse(NEIGHBOURHOOD_2D, BAD_[0], GOOD_BIRTH_COUNTS[0])
+    # # AutomataUniverse(NEIGHBOURHOOD_2D, GOOD_SURVIVAL_COUNTS[0], BAD_COUNT_RULES_NOT_UNIQUE[0])
+    # uni = base_2d_universe_instance()
+    # test_mat = (
+    #     (1,2,0),(2,2.-1),(3,1,-2)
+    # )
+    # assert uni.is_rotation_matrix(test_mat) is True
 
     # isinstance(AutomataUniverse(), AutomataUniverse)
-
-# if __name__ == '__main__':
-#     unittest.main()

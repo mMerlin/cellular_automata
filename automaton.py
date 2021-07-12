@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-'''
+"""
 manipulation of cellular automata generations
-'''
+"""
 
 # pipenv shell
 
@@ -22,11 +22,11 @@ from automata_universe import AutomataUniverse
 from automata_transforms import AutomataTransforms
 
 # class AutomataCells:
-#     '''Storage and operations for a group of cells in an AutomataUniverse
-#     '''
+#     """Storage and operations for a group of cells in an AutomataUniverse
+#     """
 
 class Automaton:
-    '''Storage for and operations on a cellular automata
+    """Storage for and operations on a cellular automata
 
     :property universe: the automata universe configuration
     :type universe: AutomataUniverse
@@ -42,14 +42,14 @@ class Automaton:
     :type iteration: int
     :property population: the number of living cells in the current generation
     :type population: int
-    '''
+    """
 
     def __init__(self, universe: AutomataUniverse) -> None:
-        '''constructor
+        """constructor
 
         :param universe: parent cellular automata universe configuration
         :type universe: AutomataUniverse
-        '''
+        """
         self._universe = universe
         self._generation = set()
         self._iteration = 0
@@ -67,16 +67,16 @@ class Automaton:
 
     @property
     def population(self) -> int:
-        '''the number of living cells in the current universe generation'''
+        """the number of living cells in the current universe generation"""
         return len(self._generation)
 
     @iteration.setter
     def iteration(self, new_iteration) -> None:
-        '''set generation sequence number for the current set
+        """set generation sequence number for the current set
 
         :param new_iteration: generation sequence number to use
         :rtype new_iteration: int
-        '''
+        """
         if not (isinstance(new_iteration, int) and new_iteration >= 0):
             raise TypeError(new_iteration,
                 "generation sequence number must be an integer equal to or greater than zero")
@@ -89,20 +89,20 @@ class Automaton:
 
     @property
     def neighbourhood_population(self) -> int:
-        '''get size of neighbourhood
+        """get size of neighbourhood
 
         :returns population: number of neighbours for a single cell
         :rtype: int
-        '''
+        """
         return len(self._universe.neighbourhood_population)
 
     @property
     def generation(self) -> AHint.CellGroupSnapshotType:
-        '''get the universe content for the current generation
+        """get the universe content for the current generation
 
         :returns current: living cells in the current generation
         :rtype: frozenset of cell address tuples
-        '''
+        """
         return frozenset(self._generation)
     # end generation property getter
 
@@ -123,13 +123,13 @@ class Automaton:
             self._universe.neighbourhood, self._transforms, self.iteration, self.generation))
 
     def _get_extent(self, cells: AHint.CellGroupWorkingType) -> AHint.BoundingBoxType:
-        '''determine the n-dimensional bounding box for a set of cells
+        """determine the n-dimensional bounding box for a set of cells
 
         :param cells:
         :type cells: «forzen»set of cell coordinate tuples
         :returns: minimum and maximum corner coordinates of bounding box
         :rtype: tuple[tuple[int, ...],tuple[int, ...]]
-        '''
+        """
         box_min = [float('inf')] * self.dimensions
         box_max = [-box_min[0]] * self.dimensions
         for coord in cells:
@@ -140,7 +140,7 @@ class Automaton:
 
     def _normalize_cells(self, cells: AHint.CellGroupWorkingType) \
             -> AHint.BoundingBoxType:
-        # '''shift group of cells to fit against all axis in the first quadrant
+        # """shift group of cells to fit against all axis in the first quadrant
 
         # The lowest coordinate value in every dimension will be zero.
 
@@ -153,7 +153,7 @@ class Automaton:
         # :rtype: tuple containing minimum and maximum coordinate tuples
         # NOTE  return_value[0] is the offset vector need to move the normalized
         #       block back to its original location
-        # '''
+        # """
         bounding_box = self._get_extent(cells)
         offset_vector = [-1 * delta for delta in bounding_box[0]]
         normalized = self._universe.cell_group_translate(cells, offset_vector)
@@ -166,13 +166,13 @@ class Automaton:
     # end def _normalize_cells()
 
     def merge_cells(self, cells: AHint.CellorCellsType) -> None:
-        '''add living cells to the current generation
+        """add living cells to the current generation
 
         Cells that already exist in the current generation are ignored
 
         :param cells:
         :type cells: single cell address tuple or iterable of cell address tuples
-        '''
+        """
         # validate that input cells are «all» address tuples
         # a tuple is iterable, so need to be careful with the single case test
         if self._universe.is_universe_address(cells):
@@ -186,7 +186,7 @@ class Automaton:
     # end merge_cells()
 
     def step(self) -> None:
-        '''iterate from the current generation to the next'''
+        """iterate from the current generation to the next"""
         next_generation = self._universe.step(self.generation)
         # self.generation = next_generation
         self._generation.clear()
@@ -198,15 +198,15 @@ class Automaton:
     # end def add_transform()
 
     # def erase_cells(self, cells: AutomataTypeHints.cell_or_cells_type):
-        # '''delete living cells from the current generation
+        # """delete living cells from the current generation
 
         # Cells that do not exist in the current generation are ignored
 
         # :param cells:
         # :type cells: single cell address tuple or iterable of cell address tuples
-        # '''
+        # """
     # def _get_expanded_neighborhood(self) -> AutomataTypeHints.neighbourhood_type:
-        # '''neighbourhood that covers as far as it is possible of a cell to interact
+        # """neighbourhood that covers as far as it is possible of a cell to interact
 
         # Is the union of the standard neighbourhood of every neighbourhood address an accurate
         # representation of the extended neighbourhood? It should be for a `normal` cellular
@@ -215,9 +215,9 @@ class Automaton:
     #     :returns increased_neighbourhood: address of all cells that could interact with the
         #         origin cell in the next generation
         # :rtype: frozenset of cell address tuples
-        # '''
+        # """
     # def get_connected_cells(self, address: AutomataTypeHints.address_type) -> AutomataTypeHints.neighbourhood_type:
-        # '''set of cells that interact with the start cell and each other
+        # """set of cells that interact with the start cell and each other
 
         # Collect all cells that are in the extended neighbourhood of the starting cell, and the
         # extended neighborhoods of those neighbours recursively.
@@ -229,7 +229,7 @@ class Automaton:
         # :type: tuple of integer dimension coordinates
         # :returns connected_set:
         # :rtype: frozenset of cell address tuples
-        # '''
+        # """
 # end class Automaton
 
 
@@ -242,7 +242,7 @@ ROTATE90 = [(0, -1), (1, 0)]
 
 def _validate_and_expand_matrices(atm: Automaton, uni: AutomataUniverse,
         r_input: AHint.RotateReflectInputType) -> None:
-    '''check supplied matrices and expand to all permutations
+    """check supplied matrices and expand to all permutations
 
     Verify that the supplied rotation and reflection matrices are consistent with the universe.
     Each matrix must be cyclic. That is, repeated operations using the matrix must return
@@ -259,7 +259,7 @@ def _validate_and_expand_matrices(atm: Automaton, uni: AutomataUniverse,
     :output self._rotate_reflect: all matrices that generate equivalent rotated and
         reflected (flipped) cell patterns
     :otype self._rotate_reflect: tuple of tuples of cell address tuples
-    '''
+    """
     print("start _validate_and_expand_matrices") # DEBUG
     # RotateReflectInputType = Iterable[Iterable[CellAddressType]]
     r_matrices = set()
@@ -324,13 +324,13 @@ def _validate_and_expand_matrices(atm: Automaton, uni: AutomataUniverse,
 # end def _validate_and_expand_matrices()
 
 def matrix_test(instance: Automaton) -> None:
-    '''exercise transform validation and setup'''
+    """exercise transform validation and setup"""
     tr_mat = ROTATE90 # GOOD
     tr_key = "Rotate 90°"
     instance.add_transform(tr_key, tr_mat)
 
 def my_main() -> None:
-    '''wrapper for test/start code so that variables do not look like constants'''
+    """wrapper for test/start code so that variables do not look like constants"""
     # code to minimally exercise the class methods
     # universe = AutomataUniverse(SQUARE_GRID_NEIGHBORS, [2,3], [3], [rotate90, horizontal_mirror])
     universe = AutomataUniverse(SQUARE_GRID_NEIGHBORS, [2,3], [3])

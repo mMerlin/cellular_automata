@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-'''
+"""
 manipulation of cellular automata generations
-'''
+"""
 
 # pipenv shell
 
@@ -14,7 +14,7 @@ from math_tools import (identity_matrix, matrix_transform, matrix_transpose,
     vector_dot_product, matrix_determinant)
 
 class AutomataUniverse:
-    '''properties for a cellular automata universe
+    """properties for a cellular automata universe
 
     Instances are Immutable
 
@@ -33,13 +33,13 @@ class AutomataUniverse:
 
     :property rotate_reflect: matrices to generate equivalent cell patterns
     :type: tuple of tuples «of tuples»
-    '''
+    """
 
     def __init__(self,
             neighbourhood: AHint.NeighbourhoodInputType,
             survival_counts: AHint.PropagationRuleInputType,
             birth_counts: AHint.PropagationRuleInputType):
-        '''constructor'''
+        """constructor"""
         self._origin_neighbourhood = frozenset(neighbourhood)
         self._survive = frozenset(survival_counts)
         self._birth = frozenset(birth_counts)
@@ -66,11 +66,11 @@ class AutomataUniverse:
 
     @property
     def neighbourhood_population(self) -> int:
-        '''get the size (number of cells) in the neighbourhood
+        """get the size (number of cells) in the neighbourhood
 
         :returns: number of possible neighbours for a single cell
         :rtype: int
-        '''
+        """
         return len(self._origin_neighbourhood)
 
     @property
@@ -94,7 +94,7 @@ class AutomataUniverse:
         return hash((self.survival_rules, self.birth_rules, self.neighbourhood))
 
     def is_rotation_matrix(self, matrix: AHint.TransformInputType) -> bool:
-        '''check if the matrix is a valid pure rotation (about an axis) matrix for the universe
+        """check if the matrix is a valid pure rotation (about an axis) matrix for the universe
 
         M · M<sup>T</sup> = I, and det(M) = 1
 
@@ -102,7 +102,7 @@ class AutomataUniverse:
         :type matrix: Iterable of «dimension» cell address tuples
         :returns: input is a pure rotational matrix
         :rtype: bool
-        '''
+        """
         self.validate_matrix(matrix)
         transposed = matrix_transpose(matrix)
         if self.matrix_transform(matrix, transposed) != self.identity_matrix:
@@ -111,7 +111,7 @@ class AutomataUniverse:
     # end def is_rotation_matrix()
 
     def step(self, cells: set[AHint.CellAddressType]) -> AHint.CellGroupWorkingType:
-        '''iterate from the current generation to the next
+        """iterate from the current generation to the next
 
         Any cell with a number of neighbors that is in the survial rule continues to the next
         generation
@@ -126,7 +126,7 @@ class AutomataUniverse:
         :type cells: set of universe cell address tuples
         :returns: next generation of cells for universe configuration
         :rtype: set of universe cell address tuples
-        '''
+        """
         self._check_cell_group(cells)
         new_generation = set() # start with an empty next generation cell set
         womb_candidates = set() # no initial candidates for new cells either
@@ -151,13 +151,13 @@ class AutomataUniverse:
 
     def neighbours(self, address: AHint.CellAddressType) -> \
             AHint.CellGroupSnapshotType:
-        '''the set of neighbours for a cell address
+        """the set of neighbours for a cell address
 
         :param address: coordinates for cell in n-space
         :type address: tuple of integers
         :returns: neighbour cell addresses
         :rtype: frozenset of coordinate tuples with same dimensionality as address
-        '''
+        """
         self.validate_address(address)
         return frozenset(tuple(sum(ele) for ele in zip(address, neighbour))
             for neighbour in self._origin_neighbourhood)
@@ -170,7 +170,7 @@ class AutomataUniverse:
 
     def cell_group_translate(self, cells: AHint.CellGroupType,
             offset_vector: AHint.CellAddressType) -> AHint.CellGroupWorkingType:
-        '''add offset «vector» to each cell coordinate
+        """add offset «vector» to each cell coordinate
 
         :param cells: group of cells to translate (move)
         :type cells: «frozen»set of cell address tuples
@@ -178,7 +178,7 @@ class AutomataUniverse:
         :type offset_vector: tuple of integers
         :returns: translated (moved) cell coordinates
         :rtype: set of cell «dimension» address tuples
-        '''
+        """
         self._check_cell_group(cells)
         self.validate_address(offset_vector)
         return set(tuple(base + delta for base, delta in zip(cell, offset_vector))
@@ -187,7 +187,7 @@ class AutomataUniverse:
 
     def cell_group_transform(self, cells: AHint.CellGroupSnapshotType,
             matrix: AHint.TransformInputType) -> AHint.CellGroupSnapshotType:
-        '''perform rotation or reflection on a set of cells around the origin
+        """perform rotation or reflection on a set of cells around the origin
 
         :param cells: group of cells to rotate or reflect around¦across the origin
         :type cells: «frozen»set of cell address tuples
@@ -195,33 +195,32 @@ class AutomataUniverse:
         :type matrix: iterable of cell address vector tuples
         :returns: rotated or reflected set of cell addresses
         :rtype: frozenset of cell «dimension» address tuples
-        '''
+        """
         self.validate_matrix(matrix)
         self._check_cell_group(cells)
         return frozenset(self._vector_dot_product(cell, matrix) for cell in cells)
-        # return frozenset(self.matrix_transform(cells, matrix))
     # end def cell_group_rotate_reflect()
 
-    def matrix_transform(self, matrix: AHint.TransformInputType,
-            transform: AHint.TransformInputType) -> AHint.TransformType:
-        '''transform a cell address matrix through a rotation or reflection matrix
+    def matrix_transform(self, operation: AHint.TransformInputType,
+            base: AHint.TransformInputType) -> AHint.TransformType:
+        """transform a cell address matrix through a rotation or reflection matrix
 
         C[i,j] = A[i,*] · B[*,j]
 
-        :param matrix: square matrix
-        :type matrix: tuple of «dimension» cell address coordinates
-        :param transform: square matrix
-        :type transform: tuple of «dimension» cell address coordinates
+        :param operation: square matrix operation
+        :type operation: tuple of «dimension» cell address coordinates
+        :param base: starting square matrix
+        :type base: tuple of «dimension» cell address coordinates
         :returns: matrix dot product
         :rtype: tuple of «dimension» cell address tuples
-        '''
-        self.validate_matrix(transform)
-        return matrix_transform(matrix, transform)
+        """
+        self.validate_matrix(base)
+        return matrix_transform(operation, base)
     # end def matrix_transform()
 
     def vector_dot_product(self, vector: AHint.CellAddressType, matrix: AHint.TransformInputType) \
             -> AHint.CellAddressType:
-        '''transform a cell address vector through a rotation or reflection matrix
+        """transform a cell address vector through a rotation or reflection matrix
 
         :param vector: cell address
         :type vector: tuple of integer coordinates for universe dimensions
@@ -229,14 +228,14 @@ class AutomataUniverse:
         :type matrix: tuple of «dimension» cell address coordinates
         :returns: rotated or reflected cell address
         :rtype: universe cell address tuple
-        '''
+        """
         self.validate_matrix(matrix)
         return self._vector_dot_product(vector, matrix)
     # end def vector_dot_product()
 
     def _vector_dot_product(self, vector: AHint.CellAddressType, matrix: AHint.TransformInputType) \
             -> AHint.CellAddressType:
-        '''transform a cell address vector through a rotation or reflection matrix
+        """transform a cell address vector through a rotation or reflection matrix
 
         matrix is not validated here. Expected to be validated once by caller, then
         used multiple times with different vectors
@@ -245,19 +244,19 @@ class AutomataUniverse:
         :type vector: tuple of integer coordinates for universe dimensions
         :param matrix: rotation matrix
         :type matrix: tuple of «dimension» cell address coordinates
-        '''
+        """
         self.validate_address(vector)
         return vector_dot_product(vector, matrix)
     # end def _vector_dot_product()
 
     def is_universe_address(self, address: AHint.CellAddressType) -> bool:
-        '''check whether argument is a valid universe address
+        """check whether argument is a valid universe address
 
         :param address: coordinates for cell in automata universe
         :type address: tuple of integers of size self.dimensions
         :return: True when address is a valid universe cell location
         :rtype: bool
-        '''
+        """
         if not isinstance(address, tuple):
             return False
         dimensions = len(address)
@@ -270,12 +269,12 @@ class AutomataUniverse:
     # end def is_universe_address()
 
     def validate_address(self, address: AHint.CellAddressType):
-        '''verify address is valid for the universe
+        """verify address is valid for the universe
 
         :param address: coordinates for cell in automata universe
         :type address: tuple of integers of size self.dimensions
         :raises: TypeError, ValueError
-        '''
+        """
         if not isinstance(address, tuple):
             raise TypeError((type(address), "automata universe address is not a tuple"))
         dimensions = len(address)
@@ -289,12 +288,12 @@ class AutomataUniverse:
     # end def validate_address()
 
     def validate_matrix(self, matrix: AHint.TransformInputType):
-        '''verify matrix is valid to perform dot product with universe cell address
+        """verify matrix is valid to perform dot product with universe cell address
 
         :param matrix: (ordered) series of «dimension» cell address vectors
         :type matrix: any iterable of «dimension» cell address tuples
         :raises: TypeError, ValueError
-        '''
+        """
         for ele in matrix:
             self.validate_address(ele)
         if len(matrix) != self.dimensions:
@@ -304,7 +303,7 @@ class AutomataUniverse:
     # end def validate_matrix()
 
     def _validate_universe_data(self, input_size: int):
-        '''check that the cell neighbourhood is structurally correct
+        """check that the cell neighbourhood is structurally correct
 
         Also extract the number of dimensions for the automata universe
 
@@ -313,7 +312,7 @@ class AutomataUniverse:
         :output self._dimensions: the number of dimensions for the automata universe
         :otype: int
         :raises: TypeError, ValueError
-        '''
+        """
         self._check_neighbourhood_type(input_size)
 
         # the origin point can not a neighbour (of the origin)
@@ -329,12 +328,12 @@ class AutomataUniverse:
     # end def _validate_universe_data()
 
     def _check_cell_group(self, cells: AHint.CellGroupType):
-        '''check that cells are valid universe address tuples
+        """check that cells are valid universe address tuples
 
         :param cells: universe cell addresses
         :type cells: set of universe cell address tuples
         :raises: TypeError
-        '''
+        """
         if not isinstance(cells, (set, frozenset)):
             raise TypeError((type(cells), "automata cell group is not a set"))
         for cell in cells:
@@ -342,7 +341,7 @@ class AutomataUniverse:
     # end def _check_cell_group()
 
     def _check_neighbourhood_type(self, input_size: int):
-        '''check that the cell neighbourhood is structurally correct
+        """check that the cell neighbourhood is structurally correct
 
         Also extract the number of dimensions for the automata universe
 
@@ -351,7 +350,7 @@ class AutomataUniverse:
         :output self._dimensions: the number of dimensions for the automata universe
         :otype: int
         :raises: TypeError, ValueError
-        '''
+        """
         # match self._origin_neighbourhood to the constructor neighourhood parameter typehint
         if not self.neighbourhood_population == input_size:
             raise ValueError((input_size, self.neighbourhood_population,
@@ -383,14 +382,14 @@ class AutomataUniverse:
 
     def _check_propagation_type(self, counts_rule: AHint.PropagationRuleType,
             input_size: int):
-        '''check that a cell propagation rule is structurally correct with valid values
+        """check that a cell propagation rule is structurally correct with valid values
 
         :param counts_rule:
         :type counts_rule: frozen set of integers
         :param input_size: the length of the Iterable used to create the propagation rule
         :type input_size: int
         :raises: TypeError, ValueError
-        '''
+        """
         rule_size = len(counts_rule)
         if not rule_size == input_size:
             raise ValueError((input_size, rule_size,
@@ -433,7 +432,7 @@ TEST_CELLS = frozenset(((7, 23),(41, 5)))
 ROTATED_CELLS = frozenset(((-23, 7),(-5, 41)))
 
 def vector_test(universe: AutomataUniverse): # pragma: no cover
-    '''exercise vector dot product code'''
+    """exercise vector dot product code"""
     # mat = None
     # mat = []
     # mat = [1, 2]
@@ -446,7 +445,7 @@ def vector_test(universe: AutomataUniverse): # pragma: no cover
     print("{} translated {}".format(in_xy, out_xy)) # DEBUG
 
 def group_test(universe: AutomataUniverse): # pragma: no cover
-    '''exercise cell group rotate¦reflect code'''
+    """exercise cell group rotate¦reflect code"""
     # mat = None
     mat = ROTATE90
     # in_cells = None
@@ -469,7 +468,7 @@ def group_test(universe: AutomataUniverse): # pragma: no cover
     assert out_cells == ROTATED_CELLS
 
 def my_main(): # pragma: no cover
-    '''wrapper for test/start code so that variables do not look like constants'''
+    """wrapper for test/start code so that variables do not look like constants"""
     # code to minimally exercise the class methods
     uni = AutomataUniverse(NEIGHBOURS_LIST, [2,3], [3])
     print("universe dimensions", uni.dimensions)
